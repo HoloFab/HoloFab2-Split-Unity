@@ -1,6 +1,6 @@
 # [HoloFab2](https://holofab.github.io/)
 
-These are only files needed for Hololens for Holofab.
+These are files needed for both Unity branches for Holofab2.
 
 Developed by (in alphabetical order):
 
