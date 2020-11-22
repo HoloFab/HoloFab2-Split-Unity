@@ -1,6 +1,6 @@
-//#define DEBUG
+#define DEBUG
 #define DEBUGWARNING
-#undef DEBUG
+// #undef DEBUG
 // #undef DEBUGWARNING
 
 using System;
@@ -23,8 +23,8 @@ namespace HoloFab {
 		// - last interpreted message.
 		private string lastMessage = "";
 		// - IP Address received.
-		[HideInInspector]
 		public static bool flagUICommunicationStarted = false;
+		public static bool flagEnvironmentSent = false;
         
 		// Unity Functions.
 		void OnEnable() {
@@ -111,12 +111,32 @@ namespace HoloFab {
 			DebugUtilities.UniversalDebug(this.sourceName, "Remote IP: " + remoteIP);
 			#endif
 			// TODO: Add ip integrity check
+            
+			// - UDP
 			// TODO: Should not be stored in udp sender.
-			UDPSendComponent sender = gameObject.GetComponent<UDPSendComponent>();
-			sender.remoteIP = remoteIP;
-			UDPReceiveComponent.flagUICommunicationStarted = true;
-			// Inform UI Manager.
-			ParameterUIMenu.instance.OnValueChanged();
+			UDPSendComponent udpSender = gameObject.GetComponent<UDPSendComponent>();
+			if (udpSender != null) {
+				udpSender.remoteIP = remoteIP;
+				UDPReceiveComponent.flagUICommunicationStarted = true;
+				// Inform UI Manager.
+				ParameterUIMenu.instance.OnValueChanged();
+			}
+            
+			// - TCP
+			TCPSendComponent tcpSender = gameObject.GetComponent<TCPSendComponent>();
+			#if DEBUG
+			DebugUtilities.UniversalDebug(this.sourceName, "Tcp sender found. Sending mesh to: " + remoteIP);
+			#endif
+			if (tcpSender != null) {
+				tcpSender.UpdateIP(remoteIP);
+				// byte[] environmentData = ObjectManager.instance.EnvironmentMesh();
+				// // Echo Environment Mesh
+				// if (environmentData != null) {
+				// 	tcpSender.remoteIP = remoteIP;
+				// 	tcpSender.SendMesh(environmentData);
+				// 	UDPReceiveComponent.flagEnvironmentSent = true;
+				// }
+			}
 		}
 	}
 }

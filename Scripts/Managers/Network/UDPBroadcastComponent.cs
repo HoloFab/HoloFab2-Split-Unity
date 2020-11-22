@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+using System;
 using System.Text;
 
 using HoloFab;
@@ -23,30 +24,37 @@ public class UDPBroadcastComponent : MonoBehaviour {
 	private IEnumerator broadcastingRoutine;
 	private string sourceName = "UDP Broadcasting Component";
     
-	float lastTime = 0;
+	private ThreadInterface broadcastingThread;
     
 	// Start is called before the first frame update
 	void OnEnable() {
 		this.requestData = Encoding.ASCII.GetBytes(this.broadcastMessage);
 		this.udpBroadcaster = new UDPSend(string.Empty, this.remotePort);
-		this.broadcastingRoutine = BroadcastingRoutine();
-		StartCoroutine(this.broadcastingRoutine);
+		// this.broadcastingRoutine = BroadcastingRoutine();
+		// StartCoroutine(this.broadcastingRoutine);
+		this.broadcastingThread = new ThreadInterface(Broadcast,
+		                                              Convert.ToInt32(this.expireTime)*1000);
+		this.broadcastingThread.Start();
 	}
 	void OnDisable() {
-		StopCoroutine(this.broadcastingRoutine);
+		// StopCoroutine(this.broadcastingRoutine);
+		this.broadcastingThread.Stop();
 	}
-	private IEnumerator BroadcastingRoutine(){
-		while (true) {
-			#if DEBUG2
-			DebugUtilities.UniversalDebug(this.sourceName, "Broadcasting a message: " + this.broadcastMessage);
+	// private IEnumerator BroadcastingRoutine(){
+	// 	while (true) {
+	// 		Broadcast();
+	// 		yield return new WaitForSeconds(this.expireTime);
+	// 	}
+	// }
+	private void Broadcast(){
+		#if DEBUG2
+		DebugUtilities.UniversalDebug(this.sourceName, "Broadcasting a message: " + this.broadcastMessage);
+		#endif
+		this.udpBroadcaster.Broadcast(this.requestData);
+		if (!this.udpBroadcaster.flagSuccess) {
+			#if DEBUGWARNING
+			DebugUtilities.UniversalWarning(this.sourceName, "Couldn't broadcast the message.");
 			#endif
-			this.udpBroadcaster.Broadcast(this.requestData);
-			if (!this.udpBroadcaster.flagSuccess) {
-				#if DEBUGWARNING
-				DebugUtilities.UniversalWarning(this.sourceName, "Couldn't broadcast the message.");
-				#endif
-			}
-			yield return new WaitForSeconds(this.expireTime);
 		}
 	}
 }

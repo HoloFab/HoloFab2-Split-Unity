@@ -1,6 +1,6 @@
-﻿//#define DEBUG
+#define DEBUG
 #define DEBUGWARNING
-#undef DEBUG
+// #undef DEBUG
 // #undef DEBUGWARNING
 
 using System.Collections;
@@ -93,6 +93,17 @@ namespace HoloFab {
 			PointcloudVisualizer[] visualizers = FindObjectsOfType<PointcloudVisualizer>();
 			foreach (PointcloudVisualizer visualizer in visualizers)
 				this.scannedEnvironment.Add(visualizer.gameObject.GetComponent<MeshRenderer>());
+			#elif UNITY_EDITOR
+			GameObject[] goItems = GameObject.FindObjectsOfType(typeof(GameObject)) as GameObject[];
+			//will return an array of all GameObjects in the scene
+			foreach(GameObject goItem in goItems) {
+				if(goItem.layer == LayerMask.NameToLayer(this.layerScanMesh)) {
+					this.scannedEnvironment.Add(goItem.GetComponent<MeshRenderer>());
+				}
+			}
+			#endif
+			#if DEBUG
+			DebugUtilities.UniversalDebug(this.sourceName, "Meshes found: " + this.scannedEnvironment.Count);
 			#endif
 		}
 		// Toggle all meshes.
@@ -105,6 +116,55 @@ namespace HoloFab {
 		// Check IF object is and environment Mesh.
 		public bool CheckEnvironmentObject(GameObject goItem){
 			return goItem.layer == LayerMask.NameToLayer(this.layerScanMesh);
+		}
+        
+		// Collect environment meshes
+		public List<byte[]> EncodeEnvironmentMesh(out string currentMessage){
+			currentMessage = string.Empty;
+			List<byte[]> data = new List<byte[]>();
+			FindMeshes();
+			if (this.scannedEnvironment.Count > 0) {
+				// Combine meshes
+				CombineInstance[] combineStructure = new CombineInstance[this.scannedEnvironment.Count];
+				int i = 0;
+				foreach (MeshRenderer meshRenderer in this.scannedEnvironment) {
+					MeshFilter meshFilter = meshRenderer.gameObject.GetComponent<MeshFilter>();
+					combineStructure[i].mesh = meshFilter.sharedMesh;
+					combineStructure[i].transform = meshRenderer.transform.localToWorldMatrix;
+					i++;
+				}
+				Mesh mesh = new Mesh();
+				mesh.CombineMeshes(combineStructure);
+                
+				// Encode mesh
+				MeshData meshData = MeshUtilities.EncodeMesh(mesh);
+				byte[] localData = EncodeUtilities.EncodeData("ENVIRONMENT", meshData, out string currentLocalMessage);
+				data.Add(localData);
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "Mesh Encoding: " + currentLocalMessage);
+				#endif
+				currentMessage = currentLocalMessage;
+                
+				// // Encode meshes separately
+				// // {
+				// // 	MeshRenderer meshRenderer = this.scannedEnvironment[0];
+				// foreach (MeshRenderer meshRenderer in this.scannedEnvironment) {
+				// 	MeshFilter meshFilter = meshRenderer.gameObject.GetComponent<MeshFilter>();
+				// 	MeshData meshData = MeshUtilities.EncodeMesh(meshFilter.sharedMesh);
+				// 	byte[] localData = EncodeUtilities.EncodeData("ENVIRONMENT", meshData, out string currentLocalMessage);
+				// 	#if DEBUG
+				// 	DebugUtilities.UniversalDebug(this.sourceName, "Mesh Encoding: " + currentLocalMessage);
+				// 	#endif
+				// 	data.Add(localData);
+				// 	currentMessage += currentLocalMessage;
+				// }
+			} else {
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "No meshes found.");
+				#endif
+			}
+            
+			return data;
 		}
 	}
 }
