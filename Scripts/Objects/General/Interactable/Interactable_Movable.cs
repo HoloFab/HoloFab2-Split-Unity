@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace HoloFab {
-	public class Interactible_Movable : MonoBehaviour {
+	public class Interactable_Movable : MonoBehaviour {
 		public GameObject goTriggerMoveXY;
 		public GameObject goTriggerMoveZ;
 		public GameObject goTriggerRotateZ;

@@ -17,7 +17,7 @@ namespace HoloFab {
 		GameObject zAxis, yAxis, xAxis, xyPlane, trigger;
 		Animator xAnim, yAnim, zAnim, triggerAnim;
 
-		private Interactible_Placeable placeable;
+		private Interactable_Placeable placeable;
 
 		// Label variables
 		private TextMeshProUGUI textHolder;
@@ -39,7 +39,7 @@ namespace HoloFab {
 			this.xAnim       = this.xAxis.GetComponent<Animator>();
 			this.triggerAnim = this.trigger.GetComponent<Animator>();
 
-			this.placeable = gameObject.GetComponent<Interactible_Placeable>();
+			this.placeable = gameObject.GetComponent<Interactable_Placeable>();
 			// this.placeable.flagPlacingOnStart = true;
 			this.placeable.OnStartPlacing = ToggleState;
 			this.placeable.OnEndPlacing = ToggleState;

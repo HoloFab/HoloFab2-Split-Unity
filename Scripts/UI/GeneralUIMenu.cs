@@ -46,13 +46,10 @@ namespace HoloFab {
 			#if DEBUG
 			Debug.Log("General UI: reset C-Plane.");
 			#endif
-			//TODO not actually delete c plane but start placing it (put infron tf camera and activate placeable)
 			// Check for C-plane
 			if (!ObjectManager.instance.CheckCPlane()) return;
-			ObjectManager.instance.cPlane.GetComponent<Interactible_Placeable>().ForcePlacement();
-			//#if WINDOWS_UWP
-			//ObjectManager.instance.cPlane.GetComponent<Interactible_Placeable>().ForcePlacement();
-			//#else
+			ObjectManager.instance.cPlane.GetComponent<Interactable_Placeable>().flagPlacing = true;
+			//#if !WINDOWS_UWP
 			//ObjectManager.instance.cPlane.SetActive(false);
 			////DestroyImmediate(ObjectManager.instance.cPlane);
 			////Resources.UnloadUnusedAssets();
@@ -73,8 +70,8 @@ namespace HoloFab {
 			ObjectManager.instance.gameObject.GetComponent<MeshProcessor>().DeleteMeshes(SourceType.TCP);
 			ObjectManager.instance.gameObject.GetComponent<MeshProcessor>().DeleteMeshes(SourceType.UDP);
 			ObjectManager.instance.gameObject.GetComponent<LabelProcessor>().DeleteLabels();
-			ObjectManager.instance.gameObject.GetComponent<RobotProcessor>().DeleteRobots();
-			ObjectManager.instance.gameObject.GetComponent<Point3DProcessor>().DeletePoints();
+			//ObjectManager.instance.gameObject.GetComponent<RobotProcessor>().DeleteRobots();
+			//ObjectManager.instance.gameObject.GetComponent<Point3DProcessor>().DeletePoints();
 		}
 		public void OnAdd3DPoint() {
 			#if DEBUG

@@ -1,6 +1,6 @@
-// #define DEBUG
+#define DEBUG
 // #define DEBUG2
-#undef DEBUG
+// #undef DEBUG
 #undef DEBUG2
 
 using System.Collections;
@@ -27,34 +27,42 @@ namespace HoloFab {
 		                            // , IMixedRealityInputHandler<Vector3>
 #endif
     {
-        public float rotationSensitivity = .5f;
 
+        [Header("Actions")]
         public InputActionReference clickActionReference;
         public InputActionReference positionActionReference;
 
-        private Interactible_Placeable[] placeables;
-        private Interactible_Movable[] movables;
-        [HideInInspector]
-        public Interactible_Placeable activePlaceable;
-        [HideInInspector]
-        public Interactible_Movable activeMovable;
+        //[Header("OLD")]
+        //public float rotationSensitivity = .5f;
 
-        // Select
-        [HideInInspector]
-        public RaycastHit hitGaze;
-        [HideInInspector]
-        public RaycastHit hitSelect;
-        [HideInInspector]
-        public bool flagHitGaze = false;
-        [HideInInspector]
-        public bool flagHitSelect = false;
+        //private Interactable_Movable[] movables;
+        //[HideInInspector]
+        //public Interactable_Movable activeMovable;
 
+
+        //private Vector3 startDragPosition, currentDragPosition;
+        //// Rotate
+        //private Vector3 lastRelativeDrag;
+
+        private void OnEnable() {
+            this.clickActionReference.action.Enable();
+            this.positionActionReference.action.Enable();
+            EnableClickActions();
+            EnableSelectActions();
+        }
+        private void OnDisable() {
+            DisaableClickActions();
+            DisableSelectActions();
+        }
+        private void Update() {
+            CheckGaze();
+        }
+
+        #region GenericClickEvents
         // Click
         private bool flagClick = false;
-
         // Drag
         private bool flagDragStarted = false;
-
         private Vector2 startScreenDragPosition, currentScreenDragPosition;
         private Vector2 dragDifference {
             get {
@@ -68,19 +76,13 @@ namespace HoloFab {
         public onDragEvent OnDragPerformed;
         public onDragEvent OnDragFinished;
 
-        //private Vector3 startDragPosition, currentDragPosition;
-        //// Rotate
-        //private Vector3 lastRelativeDrag;
-
         ////////////////////////////////////////////////////////////////////////
-        private void OnEnable() {
-            this.clickActionReference.action.Enable();
+        private void EnableClickActions() {
             this.clickActionReference.action.started += OnClickStarted;
             this.clickActionReference.action.performed += OnClickPerformed;
             this.clickActionReference.action.canceled += OnClickFinished;
-            this.positionActionReference.action.Enable();
         }
-        private void OnDisable() {
+        private void DisaableClickActions() {
             this.clickActionReference.action.started -= OnClickStarted;
             this.clickActionReference.action.performed -= OnClickPerformed;
             this.clickActionReference.action.canceled -= OnClickFinished;
@@ -90,13 +92,12 @@ namespace HoloFab {
             this.flagDragStarted = true;
             this.positionActionReference.action.performed += OnMovePerformed;
         }
-        private void OnClickPerformed(InputAction.CallbackContext context) {
-            
-        }
+        private void OnClickPerformed(InputAction.CallbackContext context) { }
         private void OnClickFinished(InputAction.CallbackContext context) {
             if (this.OnDragFinished != null)
                 this.OnDragFinished.Invoke(this.dragDifference);
             this.flagClick = false;
+            this.flagDragStarted = false;
             this.startScreenDragPosition = Vector2.zero;
             this.positionActionReference.action.performed -= OnMovePerformed;
         }
@@ -111,8 +112,92 @@ namespace HoloFab {
             if (this.OnDragPerformed != null)
                 this.OnDragPerformed.Invoke(this.dragDifference);
         }
+        #endregion
+        #region Placables
+        public LayerMask gazableLayerMask;
+        public LayerMask clickableLayerMask;
+        // Gaze
+        [HideInInspector]
+        public RaycastHit hitGaze;
+        [HideInInspector]
+        public bool flagHitGaze = false;
+        // Select
+        [HideInInspector]
+        public RaycastHit hitSelect;
+        [HideInInspector]
+        public bool flagHitSelect = false;
 
+        private Vector2 interactorPosition;
 
+        //private List<Interactable_Placeable> placeables = new List<Interactable_Placeable>();
+        //[HideInInspector]
+        //public Interactable_Placeable activePlaceable;
+
+        public delegate bool onGameObjectClick(GameObject goHit);
+        public onGameObjectClick OnGameObjectClick;
+        public delegate void onClick();
+        public onClick OnTap;
+
+        //public void RegisterPlacable(Interactable_Placeable placable) {
+        //    this.placeables.Add(placable);
+        //}
+        //public void UnregisterPlacable(Interactable_Placeable placable) {
+        //    this.placeables.RemoveAt(this.placeables.IndexOf(placable));
+        //}
+        private void EnableSelectActions() {
+            this.clickActionReference.action.canceled += OnTapped;
+            this.clickActionReference.action.canceled += OnSelect;
+            this.positionActionReference.action.performed += OnInteractorMoved;
+        }
+        private void DisableSelectActions()
+        {
+            this.clickActionReference.action.canceled -= OnTapped;
+            this.clickActionReference.action.canceled -= OnSelect;
+            this.positionActionReference.action.performed -= OnInteractorMoved;
+        }
+        private void OnTapped(InputAction.CallbackContext context) {
+			#if DEBUG2
+        	Debug.Log("InteractionManager: Tapped");
+        	#endif
+            if (this.OnTap != null) {
+                this.OnTap.Invoke();
+            }
+        }
+        private void CheckGaze() { 
+        	// Send a ray and find if anything is being selected.
+        	Ray ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
+            if (Physics.Raycast(ray.origin, ray.direction, out this.hitGaze, 
+                float.MaxValue, this.gazableLayerMask)) {
+        		#if DEBUG2
+        		Debug.Log("Interaction Manager: Gaze hit gameObject: " + this.hitGaze.transform.gameObject.name);
+        		#endif
+        		this.flagHitGaze = true;
+        	} else
+        		this.flagHitGaze = false; // If nothing hit - reset history.
+        }
+        
+        private void OnSelect(InputAction.CallbackContext context) {
+            CheckSelect(this.interactorPosition);
+        }
+        private void OnInteractorMoved(InputAction.CallbackContext context) {
+            this.interactorPosition = context.ReadValue<Vector2>();
+        }
+        private void CheckSelect(Vector2 clickPosition) {
+            Ray ray = Camera.main.ScreenPointToRay(clickPosition);
+            if (Physics.Raycast(ray.origin, ray.direction, out this.hitSelect,
+                float.MaxValue, this.clickableLayerMask)) {
+                #if DEBUG
+                Debug.Log("Interaction Manager: Selection hit gameObject: " + this.hitSelect.transform.gameObject.name);
+                #endif
+                this.flagHitSelect = true;
+                if (this.OnGameObjectClick != null) {
+                    this.OnGameObjectClick.Invoke(this.hitSelect.transform.gameObject);
+                }
+            }
+            else
+                this.flagHitSelect = false; // If nothing hit - reset history.
+        }
+        #endregion
 
 #if WINDOWS_UWP
 		////////////////////////////////////////////////////////////////////////
@@ -196,188 +281,162 @@ namespace HoloFab {
 		StopMoving();
 		}
 #endif
-        //////////////////////////////////////////////////////////////////////////
-        //void Update(){
-        //    // #if WINDOWS_UWP && DEBUG2
-        //    // MixedRealityInputAction[] actions = CoreServices.InputSystem.InputSystemProfile.InputActionsProfile.InputActions;
-        //    // if (actions.Length > 0)
-        //    // 	Debug.Log("Interactible Manager: Mixed Reality events found: " + actions.Length);
-        //    // #endif
+        //        ////////////////////////////////////////////////////////////////////////
+        //        void Update()
+        //        {
+        //            // #if WINDOWS_UWP && DEBUG2
+        //            // MixedRealityInputAction[] actions = CoreServices.InputSystem.InputSystemProfile.InputActionsProfile.InputActions;
+        //            // if (actions.Length > 0)
+        //            // 	Debug.Log("Interactible Manager: Mixed Reality events found: " + actions.Length);
+        //            // #endif
 
-        //    // Find what current selection is on
-        //    CheckSelection();
-        //    // Check if click has occured and process it to be handled by corresponding interactibles/
-        //    CheckClick();
-        //    // Check if dragging has finished.
-        //    CheckEndDrag();
+        //            // Find what current selection is on
+        //            CheckSelection();
+        //            // Check if click has occured and process it to be handled by corresponding interactibles/
+        //            CheckClick();
+        //            // Check if dragging has finished.
+        //            CheckEndDrag();
 
-        //	#if DEBUG
-        //	if (this.activeMovable != null)
-        //		Debug.Log("Interaction Manager: Active Movable: " + this.activeMovable.gameObject.name);
-        //	if (this.activePlaceable != null)
-        //		Debug.Log("Interaction Manager: Active Placeable: " + this.activePlaceable.gameObject.name);
-        //	#endif
-
-        //    // Force unclick - cick handled
-        //    this.flagClick = false;
-        //   }
-        //////////////////////////////////////////////////////////////////////////
-        //private void CheckSelection(){
-        //	// Send a ray and find if anything is being selected.
-        //	Ray ray = UnityUtilities.GenerateCameraRay();
-        //	if (Physics.Raycast(ray.origin, ray.direction, out this.hitGaze)) {
-        //		#if DEBUG2
-        //		Debug.Log("Interaction Manager: Gaze hit gameObject: " + this.hit.transform.gameObject.name);
-        //		#endif
-        //		this.flagHitGaze = true;
-        //	} else
-        //		this.flagHitGaze = false; // If nothing hit - reset history.
-        //	ray = UnityUtilities.GenerateSelectionRay();
-        //	if (Physics.Raycast(ray.origin, ray.direction, out this.hitSelect)) {
-        //		#if DEBUG2
-        //		Debug.Log("Interaction Manager: Selection hit gameObject: " + this.hit.transform.gameObject.name);
-        //		#endif
-        //		this.flagHitSelect = true;
-        //	} else
-        //		this.flagHitSelect = false; // If nothing hit - reset history.
-        //}
-
-        //// A function to register clicks (cross platform).
-        //private void CheckClick(){
-        //	// #if UNITY_ANDROID
-        //	// if (Input.touchCount > 0) {
-        //	#if !WINDOWS_UWP
-        //	#if DEBUG2
-        //	Debug.Log("Touch: " + (Input.touchCount > 0) + ", Mouse: " + Input.GetMouseButtonDown(0));
-        //	#endif
-
-        //	if (((Input.touchCount > 0) && (Input.GetTouch(0).phase == TouchPhase.Began)) || (Input.GetMouseButtonDown(0))) {
-        //	#if DEBUG2
-        //		if ((Input.touchCount > 0) && (Input.GetTouch(0).phase == TouchPhase.Began))
-        //			Debug.Log("Touch: " + (Input.GetTouch(0).position));
-        //		Debug.Log("Mouse: " + Input.mousePosition);
-        //	#endif
-        //    this.flagClick = true;
-        //    if (this.flagHitSelect || this.flagHitGaze)
-        //        ExtractClickInfo();
-        //}
+        //#if DEBUG
+        //        	if (this.activeMovable != null)
+        //        		Debug.Log("Interaction Manager: Active Movable: " + this.activeMovable.gameObject.name);
+        //        	if (this.activePlaceable != null)
+        //        		Debug.Log("Interaction Manager: Active Placeable: " + this.activePlaceable.gameObject.name);
         //#endif
-        //// In UWP handled by pointer events
-        //}
-        //   // Extract information about cursor hit info.
-        //   private void ExtractClickInfo(){
-        //    // If clicked on scanned mesh - stop placment
-        //    if ((this.activePlaceable != null) && (this.flagHitGaze && ObjectManager.instance.CheckEnvironmentObject(this.hitGaze.transform.gameObject))) {
-        // #if DEBUG
-        //        Debug.Log("Interaction Manager: Click On Scan Mesh");
-        // #endif
-        //        TryStopPlacing();
-        //    } else {
-        //        // Find interactibles if any.
-        //        if (this.flagHitGaze)
-        //            this.activePlaceable = CheckPlaceableHit(this.hitGaze.transform.gameObject);
-        //        if (this.flagHitSelect)
-        //            this.activeMovable = CheckMovableHit(this.hitSelect.transform.gameObject);
-        //    }
-        //   }
-        //   private void CheckEndDrag(){
-        // #if !WINDOWS_UWP
-        //    // Don't bother checking dragging if drag object wasn't found.
-        //    if (this.activeMovable != null) {
-        //        // Dragging taken care in Movable.
-        //        // Only monitor stopping dragging.
-        //        if (((Input.touchCount > 0) && (Input.GetTouch(0).phase == TouchPhase.Ended)) || Input.GetMouseButtonUp(0)) {
-        //            // Reset
-        //            StopMoving();
+
+        //            // Force unclick - cick handled
+        //            this.flagClick = false;
         //        }
-        //    }
-        // #endif
-        //   }
-        //   ////////////////////////////////////////////////////////////////////////
-        //   private Interactible_Placeable CheckPlaceableHit(GameObject goHit) {
-        //    this.placeables = FindObjectsOfType<Interactible_Placeable>();
-        //    foreach (Interactible_Placeable placeable in this.placeables)
-        //        if (placeable.CheckTrigger(goHit)) {
-        //            return placeable;
+        ////////////////////////////////////////////////////////////////////////
+
+        //        // A function to register clicks (cross platform).
+        //        private void CheckClick()
+        //        {
+        //            // #if UNITY_ANDROID
+        //            // if (Input.touchCount > 0) {
+        //#if !WINDOWS_UWP
+        //#if DEBUG2
+        //        	Debug.Log("Touch: " + (Input.touchCount > 0) + ", Mouse: " + Input.GetMouseButtonDown(0));
+        //#endif
+
+        //            if (((Input.touchCount > 0) && (Input.GetTouch(0).phase == TouchPhase.Began)) || (Input.GetMouseButtonDown(0)))
+        //            {
+        //#if DEBUG2
+        //        		if ((Input.touchCount > 0) && (Input.GetTouch(0).phase == TouchPhase.Began))
+        //        			Debug.Log("Touch: " + (Input.GetTouch(0).position));
+        //        		Debug.Log("Mouse: " + Input.mousePosition);
+        //#endif
+        //                this.flagClick = true;
+        //                if (this.flagHitSelect || this.flagHitGaze)
+        //                    ExtractClickInfo();
+        //            }
+        //#endif
+        //            // In UWP handled by pointer events
         //        }
-        //    return null;
-        //   }
-        //   private void TryStopPlacing(bool flagForce=false){
-        //    if (flagForce) {
-        //        this.placeables = FindObjectsOfType<Interactible_Placeable>();
-        //        foreach (Interactible_Placeable placeable in this.placeables)
-        //            placeable.OnTrySnap();
-        //        this.activePlaceable = null;
-        //    } else if (this.activePlaceable != null) {
-        //        if (this.activePlaceable.OnTrySnap())
-        //            this.activePlaceable = null;
-        //    }
-        //   }
-        //   ////////////////////////////////////////////////////////////////////////
-        //   // Find Movable object that is hit (if any).
-        //   private Interactible_Movable CheckMovableHit(GameObject goHit) {
+        //        // Extract information about cursor hit info.
+        //        private void ExtractClickInfo()
+        //        {
+        //            // If clicked on scanned mesh - stop placment
+        //            if ((this.activePlaceable != null) && (this.flagHitGaze && ObjectManager.instance.CheckEnvironmentObject(this.hitGaze.transform.gameObject)))
+        //            {
+        //            }
+        //            else
+        //            {
+        //                //// Find interactibles if any.
+        //                //if (this.flagHitSelect)
+        //                //    this.activeMovable = CheckMovableHit(this.hitSelect.transform.gameObject);
+        //            }
+        //        }
+        //        private void CheckEndDrag()
+        //        {
+        //#if !WINDOWS_UWP
+        //            // Don't bother checking dragging if drag object wasn't found.
+        //            if (this.activeMovable != null)
+        //            {
+        //                // Dragging taken care in Movable.
+        //                // Only monitor stopping dragging.
+        //                if (((Input.touchCount > 0) && (Input.GetTouch(0).phase == TouchPhase.Ended)) || Input.GetMouseButtonUp(0))
+        //                {
+        //                    // Reset
+        //                    StopMoving();
+        //                }
+        //            }
+        //#endif
+        //        }
+        //        //////////////////////////////////////////////////////////////////////////
+        //// Find Movable object that is hit (if any).
+        //private Interactible_Movable CheckMovableHit(GameObject goHit)
+        //{
         //    this.movables = FindObjectsOfType<Interactible_Movable>();
         //    foreach (Interactible_Movable movable in this.movables)
         //        if (movable.CheckTrigger(goHit))
         //            return movable;
         //    return null;
-        //   }
-        //   // Deactivate Movement on Active Mover.
-        //   private void StopMoving(bool flagForce=false){
-        //    if (flagForce) {
+        //}
+        //// Deactivate Movement on Active Mover.
+        //private void StopMoving(bool flagForce = false)
+        //{
+        //    if (flagForce)
+        //    {
         //        // Deactivate all movables - overkill, since we already have active one.
         //        this.movables = FindObjectsOfType<Interactible_Movable>();
         //        foreach (Interactible_Movable movable in this.movables)
         //            movable.StopMoving();
         //        this.activeMovable = null;
-        //    } else if (this.activeMovable != null) {
+        //    }
+        //    else if (this.activeMovable != null)
+        //    {
         //        this.activeMovable.StopMoving();
         //        this.activeMovable = null;
         //    }
-        //   }
-        //   ////////////////////////////////////////////////////////////////////////
-        //   public Vector3 DragMoveDifference(bool flagDragStart){
-        // #if !WINDOWS_UWP
-        //    this.currentDragPosition = CurrentProjectedPlanePoint(out bool _flagHit);
-        // #endif
+        //}
+        //        ////////////////////////////////////////////////////////////////////////
+        //        public Vector3 DragMoveDifference(bool flagDragStart)
+        //        {
+        //#if !WINDOWS_UWP
+        //            this.currentDragPosition = CurrentProjectedPlanePoint(out bool _flagHit);
+        //#endif
 
-        //    if (flagDragStart)
-        //        this.startDragPosition = this.currentDragPosition;
-        //    return this.currentDragPosition - this.startDragPosition;
-        //   }
-        //   public float DragRotateDifference(bool flagDragStart){
-        //    Vector3 relativeDrag;
-        // #if !WINDOWS_UWP
-        //    this.currentDragPosition = CurrentProjectedPlanePoint(out bool _flagHit);
-        //    relativeDrag = this.currentDragPosition - this.activeMovable.transform.position;
-        // #else
-        //    relativeDrag = this.currentDragPosition - this.startDragPosition;
-        // #endif
+        //            if (flagDragStart)
+        //                this.startDragPosition = this.currentDragPosition;
+        //            return this.currentDragPosition - this.startDragPosition;
+        //        }
+        //        public float DragRotateDifference(bool flagDragStart)
+        //        {
+        //            Vector3 relativeDrag;
+        //#if !WINDOWS_UWP
+        //            this.currentDragPosition = CurrentProjectedPlanePoint(out bool _flagHit);
+        //            relativeDrag = this.currentDragPosition - this.activeMovable.transform.position;
+        //#else
+        //            relativeDrag = this.currentDragPosition - this.startDragPosition;
+        //#endif
 
-        //    if (flagDragStart)
-        //        this.lastRelativeDrag = relativeDrag;
+        //            if (flagDragStart)
+        //                this.lastRelativeDrag = relativeDrag;
 
-        //    // a trick to check direction of rotation?
-        //    // TODO: Should be done once?
-        //    Vector3 controlVector = Quaternion.AngleAxis(1, this.activeMovable.orientationPlane.normal) * this.lastRelativeDrag;
-        //    float currentAngle = Vector3.Angle(this.lastRelativeDrag, relativeDrag);
-        //    float controlAngle = Vector3.Angle(controlVector, relativeDrag);
+        //            // a trick to check direction of rotation?
+        //            // TODO: Should be done once?
+        //            Vector3 controlVector = Quaternion.AngleAxis(1, this.activeMovable.orientationPlane.normal) * this.lastRelativeDrag;
+        //            float currentAngle = Vector3.Angle(this.lastRelativeDrag, relativeDrag);
+        //            float controlAngle = Vector3.Angle(controlVector, relativeDrag);
 
-        //    if (controlAngle > currentAngle) currentAngle *= -1;
+        //            if (controlAngle > currentAngle) currentAngle *= -1;
 
-        //    this.lastRelativeDrag = relativeDrag;
+        //            this.lastRelativeDrag = relativeDrag;
 
-        //    return currentAngle;//angleDifference * this.rotationSensitivity;
-        //   }
-        //   private Vector3 CurrentProjectedPlanePoint(out bool _flagHit){
+        //            return currentAngle;//angleDifference * this.rotationSensitivity;
+        //        }
+        //        private Vector3 CurrentProjectedPlanePoint(out bool _flagHit)
+        //{
         //    Ray cameraMouseRay = UnityUtilities.GenerateSelectionRay();//Camera.main.ScreenPointToRay(Input.mousePosition);
         //    // NB! Isn't it the same as mouse Ray
-        //    if (this.activeMovable.orientationPlane.Raycast(cameraMouseRay, out float rayDistance)) {
+        //    if (this.activeMovable.orientationPlane.Raycast(cameraMouseRay, out float rayDistance))
+        //    {
         //        _flagHit = true;
         //        return cameraMouseRay.GetPoint(rayDistance);
         //    }
         //    _flagHit = false;
         //    return Vector3.zero;
-        //   }
+        //}
     }
 }

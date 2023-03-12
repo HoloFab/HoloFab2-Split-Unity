@@ -34,7 +34,7 @@ namespace HoloFab {
 	public class ObjectManager : Type_Manager<ObjectManager> {
 		// - CPlane object tag.
 		private string tagCPlane = "CPlane";
-		private string layerScanMesh = "Spatial Awareness";
+		//private string layerScanMesh = "Spatial Awareness";
 		// - Local reference of CPlane object
 		public GameObject cPlane;
 		// - Meshes of the environment
@@ -61,18 +61,21 @@ namespace HoloFab {
         
 		// Local Variables.
 		private string sourceName = "Object Manager";
-
+		#if UNITY_ANDROID
 		private ARPlaneManager planeManager;
         private ARPointCloudManager pointCloudManager;
-        
+		#endif
+
 		protected override void Awake(){
 			base.Awake();
 			this.meshProcessor = GetComponent<MeshProcessor>();
 			this.labelProcessor = GetComponent<LabelProcessor>();
 			// this.robotProcessor = GetComponent<RobotProcessor>();
 			// this.point3DProcessor = GetComponent<Point3DProcessor>();
+			#if UNITY_ANDROID
 			this.planeManager = FindObjectOfType<ARPlaneManager>();
 			this.pointCloudManager = FindObjectOfType<ARPointCloudManager>();
+			#endif
 
         }
 		void Start(){
@@ -80,17 +83,11 @@ namespace HoloFab {
 		}
 		private IEnumerator Introduction() { 
 			DebugUtilities.UserMessage("Hollo World . . .");
-			//#if UNITY_ANDROID
 			yield return new WaitForSeconds(1.500f);
-			//#endif
 			DebugUtilities.UserMessage("Welcome to Holofab!");
-			//#if UNITY_ANDROID
 			yield return new WaitForSeconds(1.500f);
-			//#endif
 			DebugUtilities.UserMessage("Your IP is:\n" + NetworkUtilities.LocalIPAddress());
-			//#if UNITY_ANDROID
 			yield return new WaitForSeconds(3.500f);
-			//#endif
 			DebugUtilities.UserMessage("Place your CPlane by tapping on scanned mesh.");
 			yield return null;
 		}
@@ -200,8 +197,12 @@ namespace HoloFab {
 		public void ToggleEnvironmentMeshes(){
 			FindMeshes();
 			this.flagGridVisible = !this.flagGridVisible;
-			foreach (GameObject environmentObjects in this.scannedEnvironment)
-                environmentObjects.SetActive(this.flagGridVisible);
+			foreach (GameObject environmentObjects in this.scannedEnvironment) {
+				Renderer[] renderers = environmentObjects.GetComponents<Renderer>();
+				foreach (Renderer renderer in renderers) {
+					renderer.enabled = this.flagGridVisible;
+				}
+			}
 			
 			#if WINDOWS_UWP
 			// Microsoft Windows MRTK
@@ -214,10 +215,6 @@ namespace HoloFab {
 			this.planeManager.enabled = this.flagGridVisible;
 			this.pointCloudManager.enabled = this.flagGridVisible;
 			#endif
-		}
-		// Check IF object is and environment Mesh.
-		public bool CheckEnvironmentObject(GameObject goItem){
-			return goItem.layer == LayerMask.NameToLayer(this.layerScanMesh);
 		}
         
 		// Collect environment meshes
