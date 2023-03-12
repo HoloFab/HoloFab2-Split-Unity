@@ -27,6 +27,9 @@ public class UI_DebugWindow : MonoBehaviour {
 	void OnDisable(){
 		Application.logMessageReceivedThreaded -= LogMessage;//logMessageReceived
 	}
+	void Update(){
+		this.label.text = string.Join("\n", this.logs.ToArray());
+	}
 	public void LogMessage(string logString, string stackTrace, LogType type){
 		logString += "\n";
 		if (this.flagRolling)
@@ -35,7 +38,6 @@ public class UI_DebugWindow : MonoBehaviour {
 			this.logs.Insert(this.i, logString);
 		if (this.logs.Count >= this.size)
 			this.logs.RemoveAt(this.size);
-		this.label.text = string.Join("\n", this.logs.ToArray());
 		this.i = (this.i + 1) % this.size;
 	}
 	#endif

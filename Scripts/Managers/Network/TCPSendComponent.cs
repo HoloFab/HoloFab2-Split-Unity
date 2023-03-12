@@ -1,6 +1,8 @@
 #define DEBUG
+// #define DEBUG2
 #define DEBUGWARNING
 // #undef DEBUG
+#undef DEBUG2
 // #undef DEBUGWARNING
 
 using UnityEngine;
@@ -11,75 +13,66 @@ using HoloFab;
 using HoloFab.CustomData;
 
 namespace HoloFab {
-	// Unity Component Interfacing TCP Send class for UI.
-	public class TCPSendComponent : MonoBehaviour {
+	// Send part Unity Component Interfacing TCP Agent class.
+	public partial class TCPAgentComponent {
 		[Tooltip("Sending Frequency in milliseconds.")]
 		public int delayTime = 180000;
-		[Header("Necessary Variables.")]
-		public TCPSend tcpSender = null;
-		[Tooltip("A port for TCP communication to send to.")]
-		public int remotePortOverride = 13131;
-		[Tooltip("Received IP address of the computer.")]
-		public string remoteIP = null;
+		// [Tooltip("A port for TCP communication to send to.")]
+		// public int remotePortOverride = 13131; // NOT NECESSARY since we accept connection here not send it
 		// Local Variables.
-		private string sourceName = "TCP Sender Component";
-        
-		private ThreadInterface environmentMeshExtractor;
-        
-		// Network variables.
+		// private TaskInterface environmentMeshExtractor;
 		// Stored message to avoid unnecessary traffic.
-		private static string lastMessage;
+		private static string lastMessageSend;
         
-		public void OnEnable(){
-			this.environmentMeshExtractor = new ThreadInterface(SendData,
-			                                                    this.delayTime);
+		private void Send_Enable() {
+			// this.environmentMeshExtractor = new TaskInterface(SendData,
+			//                                                   this.delayTime);
 		}
         
-		public void OnDisable(){
-			this.environmentMeshExtractor.Stop();
+		private void Send_SpecificTerminate() {
+			// this.environmentMeshExtractor.Stop();
+			this.tcpAgent.StopReceiving();
 		}
         
-		public void UpdateIP(string _remoteIP){
-			if (this.remoteIP != _remoteIP) {
-				this.remoteIP = _remoteIP;
-				if (this.tcpSender != null)
-					this.tcpSender.Disconnect();
-				this.tcpSender = new TCPSend(this.remoteIP, this.remotePortOverride);
-				this.tcpSender.Connect();
-				this.environmentMeshExtractor.Start();
-			}
+		public override void OnUpdateIP(){
+			// if (this.tcpAgent != null)
+			// 	this.tcpAgent.Disconnect();
+			// this.tcpAgent = new TCPAgent(this, this.remoteIP, this.remotePortOverride);
+			// this.tcpAgent.Connect();
+			// this.tcpAgent.StartSending();
+			// this.environmentMeshExtractor.Start();
 		}
         
-		private void SendData(){
-			if (this.tcpSender != null) {
-				List<byte[]> environmentData = ObjectManager.instance.EncodeEnvironmentMesh(out string currentMessage);
-				if ((environmentData.Count > 0)
-				   && (!string.IsNullOrEmpty(currentMessage))
-				   && (TCPSendComponent.lastMessage != currentMessage)) {
-					TCPSendComponent.lastMessage = currentMessage;
-					foreach (byte[] data in environmentData)
-						this.tcpSender.QueueUpData(data);
-				} else {
-					#if DEBUG
-					DebugUtilities.UniversalDebug(this.sourceName, "Mesh is already sent or no mesh is found.");
-					#endif
-				}
-			}
-		}
-		// public void SendMesh(byte[] data) {
-		// 	if (data != null) {
-		// 		if (!string.IsNullOrEmpty(this.remoteIP)) { // just in case
-		// 			if ((this.tcpSender == null) || (this.tcpSender.remoteIP != this.remoteIP)) {
-		// 				this.tcpSender = new TCPSend(this.remoteIP, this.remotePortOverride);
-		// 				this.tcpSender.Connect();
-		// 			}
-		// 			this.tcpSender.QueueUpData(data);
+		// private void SendData(){
+		// 	if (this.tcpAgent != null) {
+		// 		List<byte[]> environmentData = ObjectManager.instance.EncodeEnvironmentMesh(out string currentMessage);
+		// 		if ((environmentData.Count > 0)
+		// 		   && (!string.IsNullOrEmpty(currentMessage))
+		// 		   && (TCPSendComponent.lastMessageSend != currentMessage)) {
+		// 			TCPSendComponent.lastMessageSend = currentMessage;
+		// 			foreach (byte[] data in environmentData)
+		// 				this.tcpAgent.QueueUpData(data);
 		// 		} else {
-		// 			#if DEBUGWARNING
-		// 			DebugUtilities.UniversalWarning(this.sourceName, "No server IP Found - enable Grasshopper Mesh Receiving Component");
+		// 			#if DEBUG
+		// 			DebugUtilities.UniversalDebug(this.sourceName, "Mesh is already sent or no mesh is found.");
 		// 			#endif
 		// 		}
 		// 	}
 		// }
+		// // public void SendMesh(byte[] data) {
+		// // 	if (data != null) {
+		// // 		if (!string.IsNullOrEmpty(this.remoteIP)) { // just in case
+		// // 			if ((this.tcpAgent == null) || (this.tcpAgent.remoteIP != this.remoteIP)) {
+		// // 				this.tcpAgent = new TCPSend(this.remoteIP, this.remotePortOverride);
+		// // 				this.tcpAgent.Connect();
+		// // 			}
+		// // 			this.tcpAgent.QueueUpData(data);
+		// // 		} else {
+		// // 			#if DEBUGWARNING
+		// // 			DebugUtilities.UniversalWarning(this.sourceName, "No server IP Found - enable Grasshopper Mesh Receiving Component");
+		// // 			#endif
+		// // 		}
+		// // 	}
+		// // }
 	}
 }

@@ -64,17 +64,6 @@ namespace HoloFab {
 			Debug.Log("General UI: toggle scanned environment visibility.");
 			#endif
 			ObjectManager.instance.ToggleEnvironmentMeshes();
-			#if WINDOWS_UWP
-			// Microsoft Windows MRTK
-			// Toggle Mesh Observation from all Observers
-			if (ObjectManager.instance.flagGridVisible)
-				CoreServices.SpatialAwarenessSystem.ResumeObservers();
-			else
-				CoreServices.SpatialAwarenessSystem.SuspendObservers();
-			#elif UNITY_ANDROID
-			// Android ARkit
-			DetectedPlaneVisualizerExtender.flagVisible = ObjectManager.instance.flagGridVisible;
-			#endif
 		}
 		// - Destroy Objects
 		public void OnDestroyObjects() {

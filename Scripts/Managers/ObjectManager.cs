@@ -3,6 +3,7 @@
 // #undef DEBUG
 // #undef DEBUGWARNING
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,8 +14,10 @@ using Microsoft.MixedReality.Toolkit.SpatialAwareness;
 #endif
 #if UNITY_ANDROID
 using System.Threading;
-using GoogleARCore.Examples.Common;
-using GoogleARCore.Examples.HelloAR;
+using UnityEngine.XR.ARFoundation;
+using UnityEngine.XR.ARSubsystems;
+// using GoogleARCore.Examples.Common;
+// using GoogleARCore.Examples.HelloAR;
 #endif
 
 using HoloFab;
@@ -25,9 +28,9 @@ namespace HoloFab {
 	// TODO:
 	// - Later: Move processors here?
 	[RequireComponent(typeof(MeshProcessor))]
-	[RequireComponent(typeof(RobotProcessor))]
 	[RequireComponent(typeof(LabelProcessor))]
-	[RequireComponent(typeof(Point3DProcessor))]
+	// [RequireComponent(typeof(RobotProcessor))]
+	// [RequireComponent(typeof(Point3DProcessor))]
 	public class ObjectManager : Type_Manager<ObjectManager> {
 		// - CPlane object tag.
 		private string tagCPlane = "CPlane";
@@ -35,24 +38,70 @@ namespace HoloFab {
 		// - Local reference of CPlane object
 		public GameObject cPlane;
 		// - Meshes of the environment
-		public List<MeshRenderer> scannedEnvironment;
+		public List<GameObject> scannedEnvironment;
 		// Keep track of the scanned grid status.
 		[HideInInspector]
 		public bool flagGridVisible = true;
+		private MeshProcessor meshProcessor;
+		private LabelProcessor labelProcessor;
+		// private RobotProcessor robotProcessor;
+		// private Point3DProcessor point3DProcessor;
+        
+		private Queue<ReceivedData> incomingQueue = new Queue<ReceivedData>();
+		private struct ReceivedData {
+			public string header;
+			public string data;
+			public SourceType sourceType;
+			public ReceivedData(string _header, string _data, SourceType _sourceType){
+				this.header = _header;
+				this.data = _data;
+				this.sourceType = _sourceType;
+			}
+		}
         
 		// Local Variables.
 		private string sourceName = "Object Manager";
+
+		private ARPlaneManager planeManager;
+        private ARPointCloudManager pointCloudManager;
         
-		void OnEnable(){
+		protected override void Awake(){
+			base.Awake();
+			this.meshProcessor = GetComponent<MeshProcessor>();
+			this.labelProcessor = GetComponent<LabelProcessor>();
+			// this.robotProcessor = GetComponent<RobotProcessor>();
+			// this.point3DProcessor = GetComponent<Point3DProcessor>();
+			this.planeManager = FindObjectOfType<ARPlaneManager>();
+			this.pointCloudManager = FindObjectOfType<ARPointCloudManager>();
+
+        }
+		void Start(){
+			StartCoroutine(Introduction());
+		}
+		private IEnumerator Introduction() { 
 			DebugUtilities.UserMessage("Hollo World . . .");
-			#if UNITY_ANDROID
-			Thread.Sleep(1500);
-			#endif
+			//#if UNITY_ANDROID
+			yield return new WaitForSeconds(1.500f);
+			//#endif
+			DebugUtilities.UserMessage("Welcome to Holofab!");
+			//#if UNITY_ANDROID
+			yield return new WaitForSeconds(1.500f);
+			//#endif
 			DebugUtilities.UserMessage("Your IP is:\n" + NetworkUtilities.LocalIPAddress());
-			#if UNITY_ANDROID
-			Thread.Sleep(3500);
-			#endif
+			//#if UNITY_ANDROID
+			yield return new WaitForSeconds(3.500f);
+			//#endif
 			DebugUtilities.UserMessage("Place your CPlane by tapping on scanned mesh.");
+			yield return null;
+		}
+        
+		void Update(){
+			lock (this.incomingQueue) {
+				while (this.incomingQueue.Count > 0) {
+					ReceivedData latestItem = this.incomingQueue.Dequeue();
+					ProcessNewData(latestItem.header, latestItem.data, latestItem.sourceType);
+				}
+			}
 		}
 		////////////////////////////////////////////////////////////////////////
 		// If c plane is not found - hint user and return false.
@@ -73,9 +122,49 @@ namespace HoloFab {
 			return true;
 		}
 		////////////////////////////////////////////////////////////////////////
+		// Functions to interprete and react to determined type of messages: // TODO: Join with UDP interpreters?
+		public void RequestNewData(string _header, string _data, SourceType _sourceType){
+			// Because networking is now fully on separate task
+			// and Unity doesn't work with geometrty on any thread except the main.
+			lock (this.incomingQueue) {
+				this.incomingQueue.Enqueue(new ReceivedData(_header, _data, _sourceType));
+			}
+		}
+		private void ProcessNewData(string _header, string _data, SourceType _sourceType){
+			switch (_header) {
+			 case "MESHSTREAMING":
+				 InterpreteMesh(_data, _sourceType);
+				 break;
+			 case "HOLOTAG":
+				 InterpreteLabel(_data);
+				 break;
+			}
+		}
+		// - Mesh
+		private void InterpreteMesh(string data, SourceType meshSourceType){
+			this.meshProcessor.ProcessMesh(EncodeUtilities.InterpreteMesh(data), meshSourceType);
+		}
+		// - Tag
+		private void InterpreteLabel(string data){
+			this.labelProcessor.ProcessTag(EncodeUtilities.InterpreteLabel(data));
+		}
+		// // - HoloBots
+		// private void InterpreteHoloBots(string data){
+		// 	this.robotProcessor.ProcessRobot(EncodeUtilities.InterpreteHoloBots(data));
+		// }
+		// // - RobotControllers
+		// private void InterpreteRobotController(string data){
+		// 	List<RobotControllerData> controllersData = EncodeUtilities.InterpreteRobotController(data);
+		//
+		// 	RobotProcessor processor = GetComponent<RobotProcessor>();
+		// 	foreach (RobotControllerData controllerData in controllersData)
+		// 		if(this.robotProcessor.robotsInstantiated.ContainsKey(controllerData.robotID))
+		// 			this.robotProcessor.robotsInstantiated[controllerData.robotID].GetComponentInChildren<RobotController>().ProcessRobotController(controllerData);
+		// }
+		////////////////////////////////////////////////////////////////////////
 		// Find environment meshes
 		public void FindMeshes(){
-			this.scannedEnvironment = new List<MeshRenderer>();
+			this.scannedEnvironment = new List<GameObject>();
 			#if WINDOWS_UWP
 			// Microsoft Windows MRTK
 			// Cast the Spatial Awareness system to IMixedRealityDataProviderAccess to get an Observer
@@ -89,29 +178,42 @@ namespace HoloFab {
 				}
 			}
 			#elif UNITY_ANDROID
-			// Android ARkit
-			PointcloudVisualizer[] visualizers = FindObjectsOfType<PointcloudVisualizer>();
-			foreach (PointcloudVisualizer visualizer in visualizers)
-				this.scannedEnvironment.Add(visualizer.gameObject.GetComponent<MeshRenderer>());
-			#elif UNITY_EDITOR
+			// Android ARCore
+			foreach (ARPlane plane in this.planeManager.trackables)
+                this.scannedEnvironment.Add(plane.gameObject);
+			foreach (ARPointCloud pointCloud in this.pointCloudManager.trackables)
+				this.scannedEnvironment.Add(pointCloud.gameObject);
+            #elif UNITY_EDITOR
 			GameObject[] goItems = GameObject.FindObjectsOfType(typeof(GameObject)) as GameObject[];
 			//will return an array of all GameObjects in the scene
 			foreach(GameObject goItem in goItems) {
 				if(goItem.layer == LayerMask.NameToLayer(this.layerScanMesh)) {
-					this.scannedEnvironment.Add(goItem.GetComponent<MeshRenderer>());
+					this.scannedEnvironment.Add(goItem);
 				}
 			}
 			#endif
 			#if DEBUG
-			DebugUtilities.UniversalDebug(this.sourceName, "Meshes found: " + this.scannedEnvironment.Count);
+            DebugUtilities.UniversalDebug(this.sourceName, "Meshes found: " + this.scannedEnvironment.Count);
 			#endif
 		}
 		// Toggle all meshes.
 		public void ToggleEnvironmentMeshes(){
 			FindMeshes();
 			this.flagGridVisible = !this.flagGridVisible;
-			foreach (MeshRenderer renderer in this.scannedEnvironment)
-				renderer.enabled = this.flagGridVisible;
+			foreach (GameObject environmentObjects in this.scannedEnvironment)
+                environmentObjects.SetActive(this.flagGridVisible);
+			
+			#if WINDOWS_UWP
+			// Microsoft Windows MRTK
+			// Toggle Mesh Observation from all Observers
+			if (ObjectManager.instance.flagGridVisible)
+				CoreServices.SpatialAwarenessSystem.ResumeObservers();
+			else
+				CoreServices.SpatialAwarenessSystem.SuspendObservers();
+			#else
+			this.planeManager.enabled = this.flagGridVisible;
+			this.pointCloudManager.enabled = this.flagGridVisible;
+			#endif
 		}
 		// Check IF object is and environment Mesh.
 		public bool CheckEnvironmentObject(GameObject goItem){
@@ -127,10 +229,10 @@ namespace HoloFab {
 				// Combine meshes
 				CombineInstance[] combineStructure = new CombineInstance[this.scannedEnvironment.Count];
 				int i = 0;
-				foreach (MeshRenderer meshRenderer in this.scannedEnvironment) {
-					MeshFilter meshFilter = meshRenderer.gameObject.GetComponent<MeshFilter>();
+				foreach (GameObject goItem in this.scannedEnvironment) {
+					MeshFilter meshFilter = goItem.GetComponent<MeshFilter>();
 					combineStructure[i].mesh = meshFilter.sharedMesh;
-					combineStructure[i].transform = meshRenderer.transform.localToWorldMatrix;
+					combineStructure[i].transform = goItem.transform.localToWorldMatrix;
 					i++;
 				}
 				Mesh mesh = new Mesh();

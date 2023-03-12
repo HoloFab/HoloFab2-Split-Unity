@@ -1,8 +1,9 @@
-#define DEBUG
+//#define DEBUG
 #define DEBUGWARNING
-// #undef DEBUG
+#undef DEBUG
 // #undef DEBUGWARNING
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,29 +12,25 @@ using HoloFab.CustomData;
 
 namespace HoloFab {
 	// Unity Component Interfacing UDP Receive class.
-	public class UDPReceiveComponent : NetworkReceiverAgentComponent {
+	public class UDPSystemSyncComponent : NetworkReceiverAgentComponent {
 		[Header("Necessary Variables.")]
 		[Tooltip("A port for UDP communication to listen on.")]
-		public int localPortOverride = 8810;
+		public int localPortOverride = 8802;
         
-		// Local Variables.
-		protected override string sourceName { get { return "UDP Receive Component"; } }
-		// protected override SourceType sourceType { get { return SourceType.UDP; } }
 		private UDPReceive udpReceiver;
+		// Local Variables.
+		protected override string sourceName { get { return "UDP System Sync Component"; } }
+		// protected override SourceType sourceType { get { return SourceType.UDP; } }
+		// // - IP Address received.
+		// public static bool flagUICommunicationStarted = false;
 		protected override Dictionary<string, Interpreter> validInterpreters {
 			get {
 				return new Dictionary<string, Interpreter>(){
-						   {"MESHSTREAMING", InterpreteMesh},
-						   {"HOLOTAG", InterpreteLabel}
-						   //{"HOLOBOTS". InterpreteHoloBots},
-						   //{"CONTROLLER". InterpreteRobotController}
+						   {"HOLOSTATE", InterpreteHoloState},
+						   {"HOLOTERMINATED", InterpreteHoloTerminate}
 				};
 			}
 		}
-		// // - IP Address received.
-		// public static bool flagUICommunicationStarted = false;
-		// public static bool flagEnvironmentSent = false;
-        
 		// Unity Functions.
 		protected override void OnEnable() {
 			base.OnEnable();
@@ -52,13 +49,14 @@ namespace HoloFab {
 			this._holoComponent = new HoloComponent(SourceType.UDP, SourceCommunicationType.Receiver, this.localPortOverride);
 		}
 		////////////////////////////////////////////////////////////////////////
-		// - Mesh
-		private void InterpreteMesh(string data){
-			ObjectManager.instance.RequestNewData("MESHSTREAMING", data, this.sourceType);
+		// - HoloSystemState
+		private void InterpreteHoloState(string data){
+			HoloSystemState serverState = EncodeUtilities.InterpreteHoloState(data);
+			NetworkManager.instance.RequestUpdateServerState(serverState);
 		}
-		// - Tag
-		private void InterpreteLabel(string data){
-			ObjectManager.instance.RequestNewData("HOLOTAG", data, this.sourceType);
+		// - HoloTerminate
+		private void InterpreteHoloTerminate(string data){
+			NetworkManager.instance.RequestNetworkReset();
 		}
 	}
 }

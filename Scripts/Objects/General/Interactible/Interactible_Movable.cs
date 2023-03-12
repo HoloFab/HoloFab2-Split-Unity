@@ -73,7 +73,7 @@ namespace HoloFab {
 		////////////////////////////////////////////////////////////////////////
 		void Update(){
 			if (this.state != InteractionType.Inactive) {
-				Vector3 dragDifference = InteractionManager.instance.DragMoveDifference(this.flagDragStart);
+				Vector3 dragDifference = Vector3.zero;// = InteractionManager.instance.DragMoveDifference(this.flagDragStart);
 				switch (this.state) {
 				 case InteractionType.MoveXY:
 					 MoveXY(dragDifference);
@@ -82,7 +82,7 @@ namespace HoloFab {
 					 MoveZ(dragDifference);
 					 break;
 				 case InteractionType.RotateZ:
-					 float rotateDifference = InteractionManager.instance.DragRotateDifference(this.flagDragStart);
+					 float rotateDifference = 0f;// = InteractionManager.instance.DragRotateDifference(this.flagDragStart);
 					 // Vector3 currentDragOrientation = currentPlanePosition - transform.position;
 					 // if (this.flagDragStart)
 					 //  this.lastDragOrientation = currentDragOrientation;
@@ -113,7 +113,7 @@ namespace HoloFab {
 		// 	this.lastDragOrientation = currentDragOrientation;
 		// }
 		private void RotateZ(float rotateDifference){
-			transform.Rotate(this.orientationPlane.normal, rotateDifference);// Mathf.Deg2Rad * 
-        }
+			transform.Rotate(this.orientationPlane.normal, rotateDifference);// Mathf.Deg2Rad *
+		}
 	}
 }

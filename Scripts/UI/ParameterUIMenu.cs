@@ -156,48 +156,48 @@ namespace HoloFab {
 		//////////////////////////////////////////////////////////////////////////
 		// React to a value change.
 		public void OnValueChanged() {
-			if (UDPReceiveComponent.flagUICommunicationStarted) {
+			// if (UDPReceiveComponent.flagUICommunicationStarted) {
+			#if DEBUG
+			Debug.Log("ParameterUIMenu: Updating UI values.");
+			#endif
+			// Find Objects.
+			GameObject[] goBooleans = GameObject.FindGameObjectsWithTag(this.tagUIItemBoolean);
+			GameObject[] goCounters = GameObject.FindGameObjectsWithTag(this.tagUIItemCounter);
+			GameObject[] goSliders = GameObject.FindGameObjectsWithTag(this.tagUIItemSlider);
+			#if DEBUG
+			Debug.Log("ParameterUIMenu: Found items: booleans: " + goBooleans.Length + ", counters: " + goCounters.Length + ", sliders: " + goSliders.Length);
+			#endif
+            
+			// Extract data.
+			List<bool> bools = new List<bool>();
+			List<int> ints = new List<int>();
+			List<float> floats = new List<float>();
+			foreach (GameObject goItem in goBooleans)
+				bools.Add(goItem.GetComponent<BooleanToggle>().value);
+			foreach (GameObject goItem in goCounters)
+				ints.Add(goItem.GetComponent<Counter>().value);
+			foreach (GameObject goItem in goSliders)
+				floats.Add(goItem.GetComponent<FloatSlider>().value);
+			UIData ui = new UIData(bools, ints, floats);
+            
+			// Encode and if changed - send it.
+			byte[] data = EncodeUtilities.EncodeData("UIDATA", ui, out string currentMessage);
+			if (ParameterUIMenu.lastMessage != currentMessage) {     // TODO: Technically not necessary now since we call directly from UI elements themselves.
+				ParameterUIMenu.lastMessage = currentMessage;
 				#if DEBUG
-				Debug.Log("ParameterUIMenu: Updating UI values.");
-				#endif
-				// Find Objects.
-				GameObject[] goBooleans = GameObject.FindGameObjectsWithTag(this.tagUIItemBoolean);
-				GameObject[] goCounters = GameObject.FindGameObjectsWithTag(this.tagUIItemCounter);
-				GameObject[] goSliders = GameObject.FindGameObjectsWithTag(this.tagUIItemSlider);
-				#if DEBUG
-				Debug.Log("ParameterUIMenu: Found items: booleans: " + goBooleans.Length + ", counters: " + goCounters.Length + ", sliders: " + goSliders.Length);
+				Debug.Log("ParameterUIMenu: values changed, sending: " + currentMessage);
 				#endif
                 
-				// Extract data.
-				List<bool> bools = new List<bool>();
-				List<int> ints = new List<int>();
-				List<float> floats = new List<float>();
-				foreach (GameObject goItem in goBooleans)
-					bools.Add(goItem.GetComponent<BooleanToggle>().value);
-				foreach (GameObject goItem in goCounters)
-					ints.Add(goItem.GetComponent<Counter>().value);
-				foreach (GameObject goItem in goSliders)
-					floats.Add(goItem.GetComponent<FloatSlider>().value);
-				UIData ui = new UIData(bools, ints, floats);
-                
-				// Encode and if changed - send it.
-				byte[] data = EncodeUtilities.EncodeData("UIDATA", ui, out string currentMessage);
-				if (ParameterUIMenu.lastMessage != currentMessage) { // TODO: Technically not necessary now since we call directly from UI elements themselves.
-					ParameterUIMenu.lastMessage = currentMessage;
-					#if DEBUG
-					Debug.Log("ParameterUIMenu: values changed, sending: " + currentMessage);
+				if (ParameterUIMenu.sender == null) ParameterUIMenu.sender = FindObjectOfType<UDPSendComponent>();
+				if (ParameterUIMenu.sender == null) {
+					#if DEBUGWARNING
+					Debug.Log("ParameterUIMenu: No sender Found.");
 					#endif
-                    
-					if (ParameterUIMenu.sender == null) ParameterUIMenu.sender = FindObjectOfType<UDPSendComponent>();
-					if (ParameterUIMenu.sender == null) {
-						#if DEBUGWARNING
-						Debug.Log("ParameterUIMenu: No sender Found.");
-						#endif
-						return;
-					}
-					ParameterUIMenu.sender.SendUI(data);
+					return;
 				}
+				ParameterUIMenu.sender.SendUI(data);
 			}
+			// }
 		}
 	}
 }

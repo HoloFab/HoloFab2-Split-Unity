@@ -1,6 +1,7 @@
 ﻿//#define DEBUG
 #undef DEBUG
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,7 +10,7 @@ using UnityEngine.EventSystems;
 
 namespace HoloFab {
     [RequireComponent(typeof(RectTransform))]
-    public class SwipeUI : MonoBehaviour, IDragHandler, IEndDragHandler {
+    public class SwipeUI : MonoBehaviour {
         [Tooltip("Percentage of horizontal swipe to trigger action.")]
         [Range(0, 1.00f)]
         public float swipePercentageThreshod = 0.2f;
@@ -26,6 +27,7 @@ namespace HoloFab {
         public float startDraggingThreshold = 50f;
 
         // Local State Variables:
+        private RectTransform rectTransform;
         // - current state to track.
         private bool flagCurrentState = false;
         // - location on game start to be used as start position.
@@ -39,20 +41,39 @@ namespace HoloFab {
         private Vector3 dragStartLocation;
         private float correction = 0;
 
+        private float displayWidth => Display.displays[0].renderingWidth;
+
+        private void OnEnable() {
+            InteractionManager.instance.OnDragStart += OnDragStart;
+        }
+        private void OnDisable() {
+            InteractionManager.instance.OnDragStart -= OnDragStart;
+        }
+
+
         void Start() {
             // Store current position to be used in open state.
             this.panelOpenLocation = transform.position;
             // Extract UI data, necessary for calculating position in closed state
-            RectTransform rectTransform = GetComponent<RectTransform>();
+            this.rectTransform = GetComponent<RectTransform>();
             this.UIPivotX = rectTransform.pivot.x;
             this.UIWidth = rectTransform.rect.width;
             // Force initial state.
             this.flagCurrentState = this.flagStartState;
             EnforceState(true);
         }
+        private void OnDragStart(Vector2 clickPosition) {
+            #if DEBUG
+            Debug.Log("ClickRecognized, checking containment for "+gameObject.name+": " + clickPosition.ToString("F2") + ", " + this.rectTransform.rect);
+            #endif
+            if (this.rectTransform.rect.Contains(clickPosition - new Vector2(this.rectTransform.position.x, this.rectTransform.position.y)))  {
+                InteractionManager.instance.OnDragPerformed += OnDrag;
+                InteractionManager.instance.OnDragFinished += OnEndDrag;
+            }
+        }
         // Function triggered during the drag.
-        public void OnDrag(PointerEventData data) {
-            Vector2 difference = data.pressPosition - data.position;
+        private void OnDrag(Vector2 difference) {
+            //Vector2 difference = data.pressPosition - data.position;
             if ((!this.flagDragging) && (Mathf.Abs(difference.magnitude) > this.startDraggingThreshold)) {
                 this.flagDragging = true;
                 this.dragStartLocation = transform.position;
@@ -64,24 +85,27 @@ namespace HoloFab {
             }
         }
         // Function triggered on end of the drag.
-        public void OnEndDrag(PointerEventData data) {
+        private void OnEndDrag(Vector2 difference) {
             // Check if action is triggered and update the state or restore it.
-            float swipePercentage = (data.pressPosition.x - data.position.x) / Screen.width;
+            float swipePercentage = (difference.x) / this.UIWidth;
             if (swipePercentage >= this.swipePercentageThreshod) {
-                #if DEBUG
+#if DEBUG
                 Debug.Log("Swipe: Right to Left");
-                #endif
+#endif
                 this.flagCurrentState = this.flagSwipeRight;
             }
             else if (swipePercentage <= -this.swipePercentageThreshod) { 
-                #if DEBUG
+#if DEBUG
                 Debug.Log("Swipe: Left to Right");
-                #endif
+#endif
                 this.flagCurrentState = !this.flagSwipeRight;
             }
             EnforceState();
 
             this.flagDragging = false;
+
+            InteractionManager.instance.OnDragPerformed -= OnDrag;
+            InteractionManager.instance.OnDragFinished -= OnEndDrag;
         }
         // Enforce the state.
         private void EnforceState(bool flagForce=false) {
@@ -89,7 +113,7 @@ namespace HoloFab {
             if (this.flagCurrentState == true)
                 targetLocation = this.panelOpenLocation;
             else {
-                float x = (this.flagSwipeRight) ? Screen.width * (1 - this.closedStateRemainder) : Screen.width * this.closedStateRemainder - this.UIWidth;
+                float x = (this.flagSwipeRight) ? this.displayWidth * (1 - this.closedStateRemainder) : this.displayWidth * this.closedStateRemainder - this.UIWidth;
                 targetLocation = new Vector3(x + (this.UIPivotX * this.UIWidth), transform.position.y, transform.position.z);
             }
             float duration = (flagForce) ? 0.000001f : this.easingDuration;

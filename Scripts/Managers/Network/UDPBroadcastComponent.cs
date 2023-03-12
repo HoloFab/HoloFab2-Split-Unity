@@ -13,48 +13,58 @@ using System.Text;
 using HoloFab;
 using HoloFab.CustomData;
 
-public class UDPBroadcastComponent : MonoBehaviour {
+public class UDPBroadcastComponent : NetworkAgentComponent {
 	// Settings:
-	public int remotePort = 8888;
-	public float expireTime = 1f;
+	public int remotePort = 8801;
+	public int expireTime = 3000;
 	public string broadcastMessage = "HelloWorld!";
-	// Interanl Objects
-	private byte[] requestData;
-	private UDPSend udpBroadcaster;
-	private IEnumerator broadcastingRoutine;
-	private string sourceName = "UDP Broadcasting Component";
-    
-	private ThreadInterface broadcastingThread;
-    
-	// Start is called before the first frame update
-	void OnEnable() {
-		this.requestData = Encoding.ASCII.GetBytes(this.broadcastMessage);
-		this.udpBroadcaster = new UDPSend(string.Empty, this.remotePort);
-		// this.broadcastingRoutine = BroadcastingRoutine();
-		// StartCoroutine(this.broadcastingRoutine);
-		this.broadcastingThread = new ThreadInterface(Broadcast,
-		                                              Convert.ToInt32(this.expireTime)*1000);
-		this.broadcastingThread.Start();
-	}
-	void OnDisable() {
-		// StopCoroutine(this.broadcastingRoutine);
-		this.broadcastingThread.Stop();
-	}
-	// private IEnumerator BroadcastingRoutine(){
-	// 	while (true) {
-	// 		Broadcast();
-	// 		yield return new WaitForSeconds(this.expireTime);
-	// 	}
-	// }
-	private void Broadcast(){
-		#if DEBUG2
-		DebugUtilities.UniversalDebug(this.sourceName, "Broadcasting a message: " + this.broadcastMessage);
-		#endif
-		this.udpBroadcaster.Broadcast(this.requestData);
-		if (!this.udpBroadcaster.flagSuccess) {
-			#if DEBUGWARNING
-			DebugUtilities.UniversalWarning(this.sourceName, "Couldn't broadcast the message.");
+	private string BroadcastMessage {
+		get { 
+			#if UNITY_EDITOR
+			return "Unity";
+			#else
+			return this.broadcastMessage;
 			#endif
 		}
+	}
+	// Interanl Objects
+	private byte[] requestData;
+	private UDPBroadcast udpBroadcaster;
+	protected override string sourceName { get { return "UDP Broadcasting Component"; } }
+	// protected override SourceType sourceType { get { return SourceType.UDP; } }
+    
+	public TaskInterface sender;
+    
+	protected override void OnEnable() {
+		base.OnEnable();
+        
+		this.requestData = Encoding.ASCII.GetBytes(this.BroadcastMessage);
+		this.udpBroadcaster = new UDPBroadcast(this, _port: this.remotePort, _ownerName: this.sourceName);
+		this.udpBroadcaster.Connect();
+        this.udpBroadcaster.StartSending();
+        
+		this.sender = new TaskInterface(Broadcast, this.expireTime, _taskName: this.sourceName+": Regular Broadcaster");
+		this.sender.Start();
+	}
+	protected override void SpecificTerminate() {
+		this.sender.Stop();
+		this.udpBroadcaster.StopReceiving();
+		this.udpBroadcaster.Disconnect();
+	}
+    
+	protected override void InitiateHoloComponent(){
+		this._holoComponent = new HoloComponent(SourceType.UDP, SourceCommunicationType.Sender, this.remotePort);
+	}
+	private void Broadcast(){
+		#if DEBUG2
+		DebugUtilities.UniversalDebug(this.sourceName, "Broadcasting a message: " + this.BroadCastMessage);
+		#endif
+        
+		this.udpBroadcaster.QueueUpData(this.requestData);
+		// if (!this.udpBroadcaster.flagSuccess) {
+		// 	#if DEBUGWARNING
+		// 	DebugUtilities.UniversalWarning(this.sourceName, "Couldn't broadcast the message.");
+		// 	#endif
+		// }
 	}
 }
