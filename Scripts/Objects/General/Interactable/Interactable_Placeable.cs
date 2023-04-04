@@ -1,7 +1,7 @@
 #define DEBUG
-// #define DEBUG2
+#define DEBUG2
 // #undef DEBUG
-#undef DEBUG2
+// #undef DEBUG2
 
 using System.Collections;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace HoloFab {
 	// A structure to allow the object to snap to the scanned environment.
-	public class Interactable_Placeable : MonoBehaviour {
+	public class Interactable_Placeable : Interactable {
 		[Tooltip("If is placing on start.")]
 		public bool flagPlacingOnStart = true;
 		[Tooltip("If on placement orient as well.")]
@@ -19,29 +19,32 @@ namespace HoloFab {
 		[Tooltip("A distance to start snapping at.")]
 		public float maxSnapDistance = 4f;
         
-		// Internal variable to keep track of placement.
-		private bool _flagPlacing;
-		private bool _readyToPlace;
-
-        public bool flagPlacing {
-			get {
-				return this._flagPlacing;
+		protected override bool flagInteracting { 
+			get => this.state;
+        }
+        // Internal variable to keep track of placement.
+        private bool _state = false;
+        private bool _readyToPlace = false;
+        public bool state {
+			get { 
+				return this._state;
 			}
 			set {
-				bool changed = (this.flagPlacing != value);
-				this._flagPlacing = value;
+				bool changed = (this._state != value);
+				this._state = value;
 				if (changed) { 
 					#if DEBUG
-        			Debug.Log("Interactable Placable ["+gameObject.name+"]: Changing state: " + this.flagPlacing);
+        			Debug.Log("Interactable Placable ["+gameObject.name+"]: Changing state: " + this._state);
         			#endif
-					if (this._flagPlacing) {
+					if (this._state) {
 						// Start Placing mode.
 						//InteractionManager.instance.activePlaceable = this;
-						InteractionManager.instance.OnTap += OnTrySnap;
-						StartCoroutine(PlacingRoutine());
+						InteractionManager.instance.OnTap += OnStopInteraction;
+						this.InteracttionAction = PlacePreview;
+                        StartCoroutine(ActiveInteractionCoroutine());
 					} else { 
 						//InteractionManager.instance.activePlaceable = null;
-						InteractionManager.instance.OnTap -= OnTrySnap;
+						InteractionManager.instance.OnTap -= OnStopInteraction;
 					}
 				}
 				UpdateAppearance();
@@ -50,43 +53,24 @@ namespace HoloFab {
 
 		void OnEnable(){
 			// Set initial state.
-			this.flagPlacing = this.flagPlacingOnStart;
+			this.state = this.flagPlacingOnStart;
 			//InteractionManager.instance.RegisterPlacable(this);
 		}
 		void OnDisable(){
 			//InteractionManager.instance.UnregisterPlacable(this);
 		}
-        ////////////////////////////////////////////////////////////////////////
-        public delegate void OnClickAction(); // Move to Meta Class
-        public OnClickAction OnStartPlacing;
-        public OnClickAction OnEndPlacing;
-        private void UpdateAppearance(){
-			// If events to trigger animations are set - call them.
-			if ((this.flagPlacing) && (this.OnStartPlacing != null))
-				this.OnStartPlacing.Invoke();
-			else if ((!this.flagPlacing) && (this.OnEndPlacing != null))
-                this.OnEndPlacing.Invoke();
-		}
 		////////////////////////////////////////////////////////////////////////
-		private IEnumerator PlacingRoutine(){
-			while (this.flagPlacing) {
-				PlacePreview();
-				yield return null;
-			}
-		}
 		private void PlacePreview() {
             this._readyToPlace = false;
 			float distance = this.hoverDistance;
 			Vector3 normal = Vector3.up;
-			//if ((InteractionManager.instance.flagHitGaze)
-			//	&& (ObjectManager.instance.CheckValidPlacementObject(InteractionManager.instance.hitGaze.collider.gameObject))) {
-			distance = Distance2Camera(InteractionManager.instance.hitGaze.point);
-			if (distance < this.maxSnapDistance) {
-				normal = InteractionManager.instance.hitGaze.normal;
-				this._readyToPlace = true;
-            }
-			else { 
-				distance = this.hoverDistance;
+			if (InteractionManager.instance.flagHitGaze) { 
+				//	&& (ObjectManager.instance.CheckValidPlacementObject(InteractionManager.instance.hitGaze.collider.gameObject))) {
+				distance = Distance2Camera(InteractionManager.instance.hitGaze.point);
+				if (distance < this.maxSnapDistance) {
+					normal = InteractionManager.instance.hitGaze.normal;
+					this._readyToPlace = true;
+				}
             }
 			Place(distance, normal);
 		}
@@ -103,15 +87,24 @@ namespace HoloFab {
 			if (this.flagOrient)
 				transform.localRotation = Quaternion.FromToRotation(transform.up, normal);
 		}
-		
-		public void OnTrySnap(){
+		protected override void OnStopInteraction(){
 			// If clicked on mesh - try to snap if the object is currently placing.
 			// NB! check the distance if the object is hovering (not on mesh) - ignore click.
-			if (this.flagPlacing && this._readyToPlace) {
-				this.flagPlacing = false;
+			if (this._state && this._readyToPlace) {
+				this.state = false;
 			} else {
 				DebugUtilities.UserMessage("Try to look at scanned mesh or come closer to it.");
 			}
+		}
+        ////////////////////////////////////////////////////////////////////////
+        public onInteractAction OnStartPlacing;
+        public onInteractAction OnEndPlacing;
+        protected override void UpdateAppearance(){
+			// If events to trigger animations are set - call them.
+			if ((this._state) && (this.OnStartPlacing != null))
+				this.OnStartPlacing.Invoke();
+			else if ((!this._state) && (this.OnEndPlacing != null))
+                this.OnEndPlacing.Invoke();
 		}
 	}
 }

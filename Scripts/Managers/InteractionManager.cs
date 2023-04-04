@@ -16,6 +16,8 @@ using UnityEngine.InputSystem;
 using HoloFab;
 using HoloFab.CustomData;
 using System;
+using UnityEngine.EventSystems;
+using System.Linq;
 
 namespace HoloFab {
     public class InteractionManager : Type_Manager<InteractionManager>
@@ -32,17 +34,24 @@ namespace HoloFab {
         public InputActionReference clickActionReference;
         public InputActionReference positionActionReference;
 
-        //[Header("OLD")]
-        //public float rotationSensitivity = .5f;
+
+        //private List<Interactable_Placeable> placeables = new List<Interactable_Placeable>();
+        //[HideInInspector]
+        //public Interactable_Placeable activePlaceable;
+
+        //public void RegisterPlacable(Interactable_Placeable placable) {
+        //    this.placeables.Add(placable);
+        //}
+        //public void UnregisterPlacable(Interactable_Placeable placable) {
+        //    this.placeables.RemoveAt(this.placeables.IndexOf(placable));
+        //}
 
         //private Interactable_Movable[] movables;
         //[HideInInspector]
         //public Interactable_Movable activeMovable;
 
-
-        //private Vector3 startDragPosition, currentDragPosition;
-        //// Rotate
-        //private Vector3 lastRelativeDrag;
+        //[Header("OLD")]
+        //public float rotationSensitivity = .5f;
 
         private void OnEnable() {
             this.clickActionReference.action.Enable();
@@ -58,11 +67,12 @@ namespace HoloFab {
             CheckGaze();
         }
 
-        #region GenericClickEvents
+        #region ClickAndDrag
         // Click
         private bool flagClick = false;
         // Drag
         private bool flagDragStarted = false;
+        private Vector2 interactorPosition;
         private Vector2 startScreenDragPosition, currentScreenDragPosition;
         private Vector2 dragDifference {
             get {
@@ -72,20 +82,24 @@ namespace HoloFab {
 
         public delegate void onDragStart(Vector2 clickPosition);
         public delegate void onDragEvent(Vector2 difference);
+        public delegate void onDragRelease();
         public onDragStart OnDragStart;
         public onDragEvent OnDragPerformed;
         public onDragEvent OnDragFinished;
+        public onDragRelease OnDragReleased;
 
         ////////////////////////////////////////////////////////////////////////
         private void EnableClickActions() {
             this.clickActionReference.action.started += OnClickStarted;
             this.clickActionReference.action.performed += OnClickPerformed;
             this.clickActionReference.action.canceled += OnClickFinished;
+            this.positionActionReference.action.performed += OnInteractorMoved;
         }
         private void DisaableClickActions() {
             this.clickActionReference.action.started -= OnClickStarted;
             this.clickActionReference.action.performed -= OnClickPerformed;
             this.clickActionReference.action.canceled -= OnClickFinished;
+            this.positionActionReference.action.performed -= OnInteractorMoved;
         }
         private void OnClickStarted(InputAction.CallbackContext context) {
             this.flagClick = true;
@@ -96,6 +110,8 @@ namespace HoloFab {
         private void OnClickFinished(InputAction.CallbackContext context) {
             if (this.OnDragFinished != null)
                 this.OnDragFinished.Invoke(this.dragDifference);
+            if (this.OnDragReleased != null)
+                this.OnDragReleased.Invoke();
             this.flagClick = false;
             this.flagDragStarted = false;
             this.startScreenDragPosition = Vector2.zero;
@@ -112,8 +128,21 @@ namespace HoloFab {
             if (this.OnDragPerformed != null)
                 this.OnDragPerformed.Invoke(this.dragDifference);
         }
+        private void OnInteractorMoved(InputAction.CallbackContext context) {
+            this.interactorPosition = context.ReadValue<Vector2>();
+        }
+
+        //public bool IsUIEvent(Vector2 position) {
+        //    PointerEventData pointer = new PointerEventData(EventSystem.current);
+        //    pointer.position = position;
+        //    List<RaycastResult> raycastResults = new List<RaycastResult>();
+        //    EventSystem.current.RaycastAll(pointer, raycastResults);
+        //    if (raycastResults.Count > 0)
+        //        return raycastResults.Any(item => item.distance == 0 && item.isValid);
+        //    return false;
+        //}
         #endregion
-        #region Placables
+        #region Selections
         public LayerMask gazableLayerMask;
         public LayerMask clickableLayerMask;
         // Gaze
@@ -127,33 +156,18 @@ namespace HoloFab {
         [HideInInspector]
         public bool flagHitSelect = false;
 
-        private Vector2 interactorPosition;
-
-        //private List<Interactable_Placeable> placeables = new List<Interactable_Placeable>();
-        //[HideInInspector]
-        //public Interactable_Placeable activePlaceable;
-
         public delegate bool onGameObjectClick(GameObject goHit);
         public onGameObjectClick OnGameObjectClick;
         public delegate void onClick();
         public onClick OnTap;
 
-        //public void RegisterPlacable(Interactable_Placeable placable) {
-        //    this.placeables.Add(placable);
-        //}
-        //public void UnregisterPlacable(Interactable_Placeable placable) {
-        //    this.placeables.RemoveAt(this.placeables.IndexOf(placable));
-        //}
         private void EnableSelectActions() {
             this.clickActionReference.action.canceled += OnTapped;
-            this.clickActionReference.action.canceled += OnSelect;
-            this.positionActionReference.action.performed += OnInteractorMoved;
+            this.clickActionReference.action.started += OnSelect;
         }
-        private void DisableSelectActions()
-        {
+        private void DisableSelectActions() {
             this.clickActionReference.action.canceled -= OnTapped;
-            this.clickActionReference.action.canceled -= OnSelect;
-            this.positionActionReference.action.performed -= OnInteractorMoved;
+            this.clickActionReference.action.started -= OnSelect;
         }
         private void OnTapped(InputAction.CallbackContext context) {
 			#if DEBUG2
@@ -175,12 +189,8 @@ namespace HoloFab {
         	} else
         		this.flagHitGaze = false; // If nothing hit - reset history.
         }
-        
         private void OnSelect(InputAction.CallbackContext context) {
             CheckSelect(this.interactorPosition);
-        }
-        private void OnInteractorMoved(InputAction.CallbackContext context) {
-            this.interactorPosition = context.ReadValue<Vector2>();
         }
         private void CheckSelect(Vector2 clickPosition) {
             Ray ray = Camera.main.ScreenPointToRay(clickPosition);
@@ -196,6 +206,13 @@ namespace HoloFab {
             }
             else
                 this.flagHitSelect = false; // If nothing hit - reset history.
+        }
+        public Vector3 CheckPlane(Plane plane) {
+            Ray ray = Camera.main.ScreenPointToRay(this.interactorPosition);
+            if (plane.Raycast(ray, out float rayDistance)){
+                return ray.GetPoint(rayDistance);
+            }
+            return Vector3.zero;
         }
         #endregion
 
@@ -390,53 +407,57 @@ namespace HoloFab {
         //        this.activeMovable = null;
         //    }
         //}
-        //        ////////////////////////////////////////////////////////////////////////
-        //        public Vector3 DragMoveDifference(bool flagDragStart)
-        //        {
-        //#if !WINDOWS_UWP
-        //            this.currentDragPosition = CurrentProjectedPlanePoint(out bool _flagHit);
-        //#endif
+        ////////////////////////////////////////////////////////////////////////
+        
+        //private Vector3 startDragPosition, currentDragPosition;
+        //// Rotate
+        //private Vector3 lastRelativeDrag;
+        //public Vector3 DragMoveDifference(bool flagDragStart)
+//        {
+//#if !WINDOWS_UWP
+//            this.currentDragPosition = CheckPlane(out bool _flagHit);
+//#endif
 
-        //            if (flagDragStart)
-        //                this.startDragPosition = this.currentDragPosition;
-        //            return this.currentDragPosition - this.startDragPosition;
-        //        }
-        //        public float DragRotateDifference(bool flagDragStart)
-        //        {
-        //            Vector3 relativeDrag;
-        //#if !WINDOWS_UWP
-        //            this.currentDragPosition = CurrentProjectedPlanePoint(out bool _flagHit);
-        //            relativeDrag = this.currentDragPosition - this.activeMovable.transform.position;
-        //#else
-        //            relativeDrag = this.currentDragPosition - this.startDragPosition;
-        //#endif
+//            if (flagDragStart)
+//                this.startDragPosition = this.currentDragPosition;
+//            return this.currentDragPosition - this.startDragPosition;
+//        }
+//        public float DragRotateDifference(bool flagDragStart)
+//        {
+//            Vector3 relativeDrag;
+//#if !WINDOWS_UWP
+//            this.currentDragPosition = CurrentProjectedPlanePoint(out bool _flagHit);
+//            relativeDrag = this.currentDragPosition - this.activeMovable.transform.position;
+//#else
+//                    relativeDrag = this.currentDragPosition - this.startDragPosition;
+//#endif
 
-        //            if (flagDragStart)
-        //                this.lastRelativeDrag = relativeDrag;
+//            if (flagDragStart)
+//                this.lastRelativeDrag = relativeDrag;
 
-        //            // a trick to check direction of rotation?
-        //            // TODO: Should be done once?
-        //            Vector3 controlVector = Quaternion.AngleAxis(1, this.activeMovable.orientationPlane.normal) * this.lastRelativeDrag;
-        //            float currentAngle = Vector3.Angle(this.lastRelativeDrag, relativeDrag);
-        //            float controlAngle = Vector3.Angle(controlVector, relativeDrag);
+//            // a trick to check direction of rotation?
+//            // TODO: Should be done once?
+//            Vector3 controlVector = Quaternion.AngleAxis(1, this.activeMovable.orientationPlane.normal) * this.lastRelativeDrag;
+//            float currentAngle = Vector3.Angle(this.lastRelativeDrag, relativeDrag);
+//            float controlAngle = Vector3.Angle(controlVector, relativeDrag);
 
-        //            if (controlAngle > currentAngle) currentAngle *= -1;
+//            if (controlAngle > currentAngle) currentAngle *= -1;
 
-        //            this.lastRelativeDrag = relativeDrag;
+//            this.lastRelativeDrag = relativeDrag;
 
-        //            return currentAngle;//angleDifference * this.rotationSensitivity;
-        //        }
-        //        private Vector3 CurrentProjectedPlanePoint(out bool _flagHit)
-        //{
-        //    Ray cameraMouseRay = UnityUtilities.GenerateSelectionRay();//Camera.main.ScreenPointToRay(Input.mousePosition);
-        //    // NB! Isn't it the same as mouse Ray
-        //    if (this.activeMovable.orientationPlane.Raycast(cameraMouseRay, out float rayDistance))
-        //    {
-        //        _flagHit = true;
-        //        return cameraMouseRay.GetPoint(rayDistance);
-        //    }
-        //    _flagHit = false;
-        //    return Vector3.zero;
-        //}
+//            return currentAngle;//angleDifference * this.rotationSensitivity;
+//        }
+//        private Vector3 CurrentProjectedPlanePoint(out bool _flagHit)
+//        {
+//            Ray cameraMouseRay = UnityUtilities.GenerateSelectionRay();//Camera.main.ScreenPointToRay(Input.mousePosition);
+//            // NB! Isn't it the same as mouse Ray
+//            if (this.activeMovable.orientationPlane.Raycast(cameraMouseRay, out float rayDistance))
+//            {
+//                _flagHit = true;
+//                return cameraMouseRay.GetPoint(rayDistance);
+//            }
+//            _flagHit = false;
+//            return Vector3.zero;
+//        }
     }
 }

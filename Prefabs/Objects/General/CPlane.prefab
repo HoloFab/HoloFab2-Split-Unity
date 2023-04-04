@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2366421800211324420}
   - component: {fileID: 4550682352255116814}
   - component: {fileID: 4440895834431410230}
+  - component: {fileID: 683983824}
   m_Layer: 6
   m_Name: XY
   m_TagString: Untagged
@@ -61,6 +62,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pivotAxis: 0
   targetTransform: {fileID: 0}
+--- !u!114 &683983824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 31361062569100026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71bed4e6de8b74e498fae3e73f857aec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  OnTrigger:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 613705711188458022}
+        m_TargetAssemblyTypeName: HoloFab.Interactable_Movable, Holofab.Unity
+        m_MethodName: TriggerMoveXY
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &485056765579753686
 GameObject:
   m_ObjectHideFlags: 0
@@ -72,6 +100,7 @@ GameObject:
   - component: {fileID: 787808988729559012}
   - component: {fileID: 4817083199916686280}
   - component: {fileID: 1656539510535353078}
+  - component: {fileID: 1120490055}
   m_Layer: 6
   m_Name: R
   m_TagString: Untagged
@@ -122,6 +151,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pivotAxis: 0
   targetTransform: {fileID: 0}
+--- !u!114 &1120490055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 485056765579753686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71bed4e6de8b74e498fae3e73f857aec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  OnTrigger:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 613705711188458022}
+        m_TargetAssemblyTypeName: HoloFab.Interactable_Movable, Holofab.Unity
+        m_MethodName: TriggerRotateZ
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &706598700894990686
 GameObject:
   m_ObjectHideFlags: 0
@@ -1219,10 +1275,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 521f2f68b30c4f74784560aebb29390e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  goTriggerMoveXY: {fileID: 31361062569100026}
-  goTriggerMoveZ: {fileID: 8097633408749023943}
-  goTriggerRotateZ: {fileID: 485056765579753686}
-  state: 0
 --- !u!1 &3798030945922494489
 GameObject:
   m_ObjectHideFlags: 0
@@ -1760,7 +1812,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 5505426435189084519}
         m_TargetAssemblyTypeName: HoloFab.Interactable_Placeable, Holofab.Unity
-        m_MethodName: set_flagPlacing
+        m_MethodName: set_state
         m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1864,6 +1916,7 @@ GameObject:
   - component: {fileID: 1973494547585719962}
   - component: {fileID: 4616973378772627816}
   - component: {fileID: 3368693362658379123}
+  - component: {fileID: 1965721779}
   m_Layer: 6
   m_Name: Z
   m_TagString: Untagged
@@ -1914,6 +1967,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pivotAxis: 0
   targetTransform: {fileID: 0}
+--- !u!114 &1965721779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8097633408749023943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71bed4e6de8b74e498fae3e73f857aec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  OnTrigger:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 613705711188458022}
+        m_TargetAssemblyTypeName: HoloFab.Interactable_Movable, Holofab.Unity
+        m_MethodName: TriggerMoveZ
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &8197337694249194786
 GameObject:
   m_ObjectHideFlags: 0
@@ -2007,7 +2087,7 @@ PrefabInstance:
     - target: {fileID: 5449851496715643378, guid: ef5e21b13c6499944b1802671d86154a,
         type: 3}
       propertyPath: m_PresetInfoIsWorld
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6525381582340879510, guid: ef5e21b13c6499944b1802671d86154a,
         type: 3}

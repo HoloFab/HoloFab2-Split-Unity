@@ -48,7 +48,7 @@ namespace HoloFab {
 			#endif
 			// Check for C-plane
 			if (!ObjectManager.instance.CheckCPlane()) return;
-			ObjectManager.instance.cPlane.GetComponent<Interactable_Placeable>().flagPlacing = true;
+			ObjectManager.instance.cPlane.GetComponent<Interactable_Placeable>().state = true;
 			//#if !WINDOWS_UWP
 			//ObjectManager.instance.cPlane.SetActive(false);
 			////DestroyImmediate(ObjectManager.instance.cPlane);

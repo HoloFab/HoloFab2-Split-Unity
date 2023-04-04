@@ -195,7 +195,7 @@ namespace HoloFab {
 					#endif
 					return;
 				}
-				ParameterUIMenu.sender.SendUI(data);
+				ParameterUIMenu.sender.QueueUpData(data);
 			}
 			// }
 		}

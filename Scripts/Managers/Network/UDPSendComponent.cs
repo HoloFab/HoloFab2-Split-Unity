@@ -55,7 +55,7 @@ namespace HoloFab {
 			return false;
 		}
         
-		public void SendUI(byte[] data) {
+		public void QueueUpData(byte[] data) {
 			if (PrepareSender())
 				this.udpSender.QueueUpData(data);
 		}
