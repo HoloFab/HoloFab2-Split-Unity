@@ -1,7 +1,9 @@
-#define DEBUG
-#define DEBUG2
-// #undef DEBUG
-// #undef DEBUG2
+//#define DEBUG
+//#define DEBUG2
+#define DEBUGWARNING
+#undef DEBUG
+#undef DEBUG2
+//#undef DEBUGWARNING
 
 using System.Collections;
 using System.Collections.Generic;
@@ -50,7 +52,7 @@ namespace HoloFab {
                     } else
                         InteractionManager.instance.OnDragReleased -= OnStopInteraction;
 
-                    UpdateAppearance();
+                    UpdateEvents();
                 }
             }
         }
@@ -110,30 +112,32 @@ namespace HoloFab {
 		}
 		protected override void OnStopInteraction(){
 			this._state = MovableInteractionType.Inactive;
-		}
+			UpdateEvents();
+
+        }
 		////////////////////////////////////////////////////////////////////////
 		public onInteractAction OnStartMoveXY;
 		public onInteractAction OnStartMoveZ;
 		public onInteractAction OnStartRotateZ;
         public onInteractAction OnEndInteractiion;
 		// If events to trigger animations are set - call them.
-		protected override void UpdateAppearance(){
+		protected override void UpdateEvents(){
 			switch (this._state) {
 				 case MovableInteractionType.MoveXY:
                     if (this.OnStartMoveXY != null)
-                        this.OnStartMoveXY();
+                        this.OnStartMoveXY.Invoke();
                     break;
 				 case MovableInteractionType.MoveZ:
 					 if (this.OnStartMoveZ != null)
-						this.OnStartMoveZ();
+						this.OnStartMoveZ.Invoke();
                      break;
                 case MovableInteractionType.RotateZ:
                     if (this.OnStartRotateZ != null)
-                        this.OnStartRotateZ();
+                        this.OnStartRotateZ.Invoke();
                     break;
                 case MovableInteractionType.Inactive:
                     if (this.OnEndInteractiion != null)
-                        this.OnEndInteractiion();
+                        this.OnEndInteractiion.Invoke();
                     break;
                 default:
 					 break;

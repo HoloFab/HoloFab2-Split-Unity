@@ -1,7 +1,7 @@
-#define DEBUG
-#define DEBUG2
-// #undef DEBUG
-// #undef DEBUG2
+//#define DEBUG
+//#define DEBUG2
+#undef DEBUG
+#undef DEBUG2
 
 using System.Collections;
 using System.Collections.Generic;
@@ -47,7 +47,7 @@ namespace HoloFab {
 						InteractionManager.instance.OnTap -= OnStopInteraction;
 					}
 				}
-				UpdateAppearance();
+				UpdateEvents();
             }
         }
 
@@ -57,6 +57,7 @@ namespace HoloFab {
 			//InteractionManager.instance.RegisterPlacable(this);
 		}
 		void OnDisable(){
+			//if (InteractionManager.instance == null) return;
 			//InteractionManager.instance.UnregisterPlacable(this);
 		}
 		////////////////////////////////////////////////////////////////////////
@@ -99,7 +100,7 @@ namespace HoloFab {
         ////////////////////////////////////////////////////////////////////////
         public onInteractAction OnStartPlacing;
         public onInteractAction OnEndPlacing;
-        protected override void UpdateAppearance(){
+        protected override void UpdateEvents(){
 			// If events to trigger animations are set - call them.
 			if ((this._state) && (this.OnStartPlacing != null))
 				this.OnStartPlacing.Invoke();

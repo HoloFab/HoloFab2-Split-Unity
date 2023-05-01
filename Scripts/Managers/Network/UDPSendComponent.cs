@@ -1,7 +1,9 @@
-// #define DEBUG
+//#define DEBUG
+//#define DEBUG2
 #define DEBUGWARNING
 #undef DEBUG
-// #undef DEBUGWARNING
+#undef DEBUG2
+//#undef DEBUGWARNING
 
 using UnityEngine;
 using System.Collections;

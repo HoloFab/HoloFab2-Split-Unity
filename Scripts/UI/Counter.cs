@@ -12,7 +12,7 @@ using HoloFab.CustomData;
 
 namespace HoloFab {
 	// Counter element, responsible for keeping track of the value.
-	public class Counter : MonoBehaviour {
+	public class Counter : UpdatableElement {
 		[Tooltip("UI elements.")]
 		public Button P, N;
 		[Tooltip("Label text to display value.")]
@@ -20,9 +20,9 @@ namespace HoloFab {
 		// Value of the counter.
 		[HideInInspector]
 		public int value = 0;
-        
-		// Start is called before the first frame update
-		void Start() {
+
+        // Start is called before the first frame update
+        void Start() {
 			// P.onClick.AddListener(CounterPlus);
 			// N.onClick.AddListener(CounterMinus);
 		}
@@ -39,8 +39,7 @@ namespace HoloFab {
 			#if DEBUG
 			Debug.Log("Counter: Value: " + this.value);
 			#endif
-			// Inform UI Manager.
-			ParameterUIMenu.instance.OnValueChanged();
+			InformChange();
 		}
 	}
 }

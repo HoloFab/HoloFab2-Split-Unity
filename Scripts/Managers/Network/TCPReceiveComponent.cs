@@ -1,9 +1,9 @@
-#define DEBUG
-// #define DEBUG2
+//#define DEBUG
+//#define DEBUG2
 #define DEBUGWARNING
-// #undef DEBUG
+#undef DEBUG
 #undef DEBUG2
-// #undef DEBUGWARNING
+//#undef DEBUGWARNING
 
 using System.Collections.Generic;
 using UnityEngine;

@@ -1,7 +1,9 @@
-#define DEBUG
+//#define DEBUG
+//#define DEBUG2
 #define DEBUGWARNING
-// #undef DEBUG
-// #undef DEBUGWARNING
+#undef DEBUG
+#undef DEBUG2
+//#undef DEBUGWARNING
 
 using System;
 using System.Collections;
@@ -197,12 +199,22 @@ namespace HoloFab {
 		public void ToggleEnvironmentMeshes(){
 			FindMeshes();
 			this.flagGridVisible = !this.flagGridVisible;
-			foreach (GameObject environmentObjects in this.scannedEnvironment) {
-				Renderer[] renderers = environmentObjects.GetComponents<Renderer>();
-				foreach (Renderer renderer in renderers) {
-					renderer.enabled = this.flagGridVisible;
-				}
-			}
+			foreach (GameObject environmentObject in this.scannedEnvironment) {
+
+				ARPlaneMeshVisualizer planeVisualizer = environmentObject.GetComponentInChildren<ARPlaneMeshVisualizer>();
+				if (planeVisualizer != null) 
+					planeVisualizer.enabled = this.flagGridVisible;
+
+                ARPointCloudParticleVisualizer pointCloudVisualizer = environmentObject.GetComponentInChildren<ARPointCloudParticleVisualizer>();
+				if (pointCloudVisualizer != null) 
+                    pointCloudVisualizer.enabled = this.flagGridVisible;
+
+				//environmentObject.SetActive(this.flagGridVisible);
+                //Renderer[] renderers = environmentObjects.GetComponents<Renderer>();
+                //foreach (Renderer renderer in renderers) {
+                //	renderer.enabled = this.flagGridVisible;
+                //}
+            }
 			
 			#if WINDOWS_UWP
 			// Microsoft Windows MRTK
@@ -212,8 +224,8 @@ namespace HoloFab {
 			else
 				CoreServices.SpatialAwarenessSystem.SuspendObservers();
 			#else
-			this.planeManager.enabled = this.flagGridVisible;
-			this.pointCloudManager.enabled = this.flagGridVisible;
+			this.planeManager.requestedDetectionMode = this.flagGridVisible ? PlaneDetectionMode.Horizontal : PlaneDetectionMode.None;
+			//this.pointCloudManager.enabled = this.flagGridVisible;
 			#endif
 		}
         

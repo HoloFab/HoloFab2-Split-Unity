@@ -1,7 +1,9 @@
+//#define DEBUG
 //#define DEBUG2
 #define DEBUGWARNING
+#undef DEBUG
 #undef DEBUG2
-// #undef DEBUGWARNING
+//#undef DEBUGWARNING
 
 using System.Collections;
 using System.Collections.Generic;
@@ -17,13 +19,13 @@ public class UDPBroadcastComponent : NetworkAgentComponent {
 	// Settings:
 	public int remotePort = 8801;
 	public int expireTime = 3000;
-	public string broadcastMessage = "HelloWorld!";
-	private string BroadcastMessage {
+	public string broadcasterName = "HelloWorld!";
+	private string BroadcasterName {
 		get { 
 			#if UNITY_EDITOR
 			return "Unity";
 			#else
-			return this.broadcastMessage;
+			return this.broadcasterName;
 			#endif
 		}
 	}
@@ -38,7 +40,7 @@ public class UDPBroadcastComponent : NetworkAgentComponent {
 	protected override void OnEnable() {
 		base.OnEnable();
         
-		this.requestData = Encoding.ASCII.GetBytes(this.BroadcastMessage);
+		this.requestData = Encoding.ASCII.GetBytes(this.BroadcasterName);
 		this.udpBroadcaster = new UDPBroadcast(this, _port: this.remotePort, _ownerName: this.sourceName);
 		this.udpBroadcaster.Connect();
         this.udpBroadcaster.StartSending();

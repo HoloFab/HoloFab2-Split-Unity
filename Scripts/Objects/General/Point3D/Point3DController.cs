@@ -1,87 +1,88 @@
-﻿using System.Collections;
+﻿//#define DEBUG
+//#define DEBUG2
+#define DEBUGWARNING
+#undef DEBUG
+#undef DEBUG2
+//#undef DEBUGWARNING
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 using TMPro;
 
 namespace HoloFab {
-	#if WINDOWS_UWP
-	[RequireComponent(typeof(Interactible_Placeable))]
-	#endif
-	public class Point3DController : MonoBehaviour {
-		// // TODO: This should be in animation
-		// public Vector3 scaleClosed = new Vector3(0.01f, 0.01f, 0.01f);
-		// public Vector3 scaleOpen = new Vector3(10f, 1f, 10f);
-
+	// Manage wether is currently interactable and manage animations and data label.
+	[RequireComponent(typeof(Interactable_Movable))]
+    [RequireComponent(typeof(Interactable_Placeable))]
+    public class Point3DController : UpdatableElement {
 		private bool flagOpen;
-		GameObject zAxis, yAxis, xAxis, xyPlane, trigger;
-		Animator xAnim, yAnim, zAnim, triggerAnim;
-
-		private Interactable_Placeable placeable;
 
 		// Label variables
 		private TextMeshProUGUI textHolder;
-		private Vector3 relativePosition;
+        private Animator[] animators;
+
+        public Vector3 RelativePosition {
+			get {
+				return ObjectManager.instance.cPlane.transform.InverseTransformPoint(transform.position);
+            }
+		}
+		public Vector3 Up {
+			get {
+				return ObjectManager.instance.cPlane.transform.InverseTransformDirection(transform.up);
+            }
+		}
 
 		private string sourceName = "Point 3D Controller";
 
 		void Start() {
 			this.flagOpen = false;
-			foreach (Transform child in transform) {
-				if (child.name == "z") this.zAxis = child.gameObject;
-				if (child.name == "y") this.yAxis = child.gameObject;
-				if (child.name == "x") this.xAxis = child.gameObject;
-				if (child.tag == "Point3DPlaneXY") this.xyPlane = child.gameObject;
-				if (child.tag == "Point3DToggle") this.trigger = child.gameObject;
-			}
-			this.zAnim       = this.zAxis.GetComponent<Animator>();
-			this.yAnim       = this.yAxis.GetComponent<Animator>();
-			this.xAnim       = this.xAxis.GetComponent<Animator>();
-			this.triggerAnim = this.trigger.GetComponent<Animator>();
 
-			this.placeable = gameObject.GetComponent<Interactable_Placeable>();
-			// this.placeable.flagPlacingOnStart = true;
-			this.placeable.OnStartPlacing = ToggleState;
-			this.placeable.OnEndPlacing = ToggleState;
-		}
+			this.animators = GetComponentsInChildren<Animator>();
+			this.textHolder = GetComponentInChildren<TextMeshProUGUI>();
 
-		// Update is called once per frame
-		void Update() {
-			//Should it be updated every frame?
+            Interactable_Movable movable = gameObject.GetComponent<Interactable_Movable>();
+            if (movable != null)
+            {
+                movable.OnInteracting += UpdatePointLabel;
+                movable.OnEndInteractiion += UpdatePointLabel;
+                movable.OnEndInteractiion += InformChange;
+            }
+            Interactable_Placeable placeable = gameObject.GetComponent<Interactable_Placeable>();
+            if (placeable != null)
+            {
+                // placeable.flagPlacingOnStart = true;
+                placeable.OnStartPlacing += ToggleState;
+                placeable.OnInteracting += UpdatePointLabel;
+                placeable.OnEndPlacing += ToggleState;
+                placeable.OnEndPlacing += UpdatePointLabel;
+                placeable.OnEndPlacing += InformChange;
+            }
+
+            UpdateAnimationState();
 			UpdatePointLabel();
-			// if (!this.flagOpen)
-			// 	UpdateAnimationState();
-			// else
-			// 	UpdateAnimationState(false);
-
-		}
+        }
 		// Accessible way to triger animation change.
 		public void ToggleState(){
 			this.flagOpen = !this.flagOpen;
-			UpdateAnimationState(this.flagOpen);
+			UpdateAnimationState();
 			#if DEBUG
 			DebugUtilities.UniversalDebug(sourceName, "Toggling state: New State: " + this.flagOpen);
 			#endif
 		}
-		// General way to update animations.
-		// TODO: Make one animation for all of them together
-		private void UpdateAnimationState(bool flagState=true){
-			this.xAnim.SetBool("Expand", flagState);
-			this.yAnim.SetBool("Expand", flagState);
-			this.zAnim.SetBool("Expand", flagState);
-			this.triggerAnim.SetBool("Expand", flagState);
-			// this.xyPlane.transform.localScale = (flagState) ? this.scaleClosed : this.scaleOpen;
-		}
 		////////////////////////////////////////////////////////////////////////
 		// A function to Update the point Label.
-		public void UpdatePointLabel(){
+		private void UpdatePointLabel(){
 			if (!ObjectManager.instance.CheckCPlane()) return;
-			this.relativePosition = transform.position - ObjectManager.instance.cPlane.transform.position;
-			if (this.textHolder == null)
-				this.textHolder = GetComponentInChildren<TextMeshProUGUI>();
-			this.textHolder.text = "X: " + this.relativePosition.x.ToString() + "\n" +
-			                       "Y: " + this.relativePosition.z.ToString() + "\n" +
-			                       "Z: " + this.relativePosition.y.ToString();
+			this.textHolder.text = "X: " + (this.RelativePosition.x*1000f).ToString("F2") + "\n" +
+			                       "Y: " + (this.RelativePosition.z*1000f).ToString("F2") + "\n" +
+			                       "Z: " + (this.RelativePosition.y*1000f).ToString("F2");
+		}
+		// General way to update animations.
+		// TODO: Make one animation for all of them together
+		private void UpdateAnimationState(){
+			foreach (Animator animator in this.animators)
+				animator.SetBool("Expand", this.flagOpen);
 		}
 	}
 }

@@ -1,6 +1,6 @@
-#define DEBUG
+// #define DEBUG
 // #define DEBUG2
-// #undef DEBUG
+#undef DEBUG
 #undef DEBUG2
 
 using System.Collections;
@@ -17,6 +17,7 @@ namespace HoloFab {
 			InteractionManager.instance.OnGameObjectClick += CheckTrigger;
 		}
         private void OnDisable() {
+			if (InteractionManager.instance == null) return;
 			InteractionManager.instance.OnGameObjectClick -= CheckTrigger;
         }
         public bool CheckTrigger(GameObject goHit){

@@ -1,7 +1,9 @@
-#define DEBUG
-// #define DEBUG2
-// #undef DEBUG
+//#define DEBUG
+//#define DEBUG2
+#define DEBUGWARNING
+#undef DEBUG
 #undef DEBUG2
+//#undef DEBUGWARNING
 
 using System.Collections;
 using System.Collections.Generic;

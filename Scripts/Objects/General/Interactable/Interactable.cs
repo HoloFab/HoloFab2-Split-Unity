@@ -1,6 +1,6 @@
-﻿#define DEBUG
+﻿// #define DEBUG
 // #define DEBUG2
-// #undef DEBUG
+#undef DEBUG
 #undef DEBUG2
 
 using System.Collections;
@@ -18,13 +18,17 @@ namespace HoloFab {
 		protected IEnumerator ActiveInteractionCoroutine(){
 			while (this.flagInteracting) {
 				if (this.InteracttionAction != null) 
-                    this.InteracttionAction();
-				yield return null;
+                    this.InteracttionAction.Invoke();
+                if (this.OnInteracting != null)
+                    this.OnInteracting.Invoke();
+
+                yield return null;
 			}
         }
         protected abstract void OnStopInteraction();
         ////////////////////////////////////////////////////////////////////////
         public delegate void onInteractAction();
-        protected abstract void UpdateAppearance();
+        public onInteractAction OnInteracting;
+        protected abstract void UpdateEvents();
     }
 }

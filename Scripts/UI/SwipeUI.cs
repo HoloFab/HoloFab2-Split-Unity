@@ -47,6 +47,7 @@ namespace HoloFab {
             InteractionManager.instance.OnDragStart += OnDragStart;
         }
         private void OnDisable() {
+            if (InteractionManager.instance == null) return; 
             InteractionManager.instance.OnDragStart -= OnDragStart;
         }
 

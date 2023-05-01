@@ -1,7 +1,9 @@
 //#define DEBUG
+//#define DEBUG2
 #define DEBUGWARNING
 #undef DEBUG
-// #undef DEBUGWARNING
+#undef DEBUG2
+//#undef DEBUGWARNING
 
 using System;
 using System.Collections.Generic;
@@ -41,6 +43,7 @@ namespace HoloFab {
 			this.udpReceiver.StartReceiving();
 		}
 		protected override void SpecificTerminate() {
+			if (this.udpReceiver == null) return;
 			this.udpReceiver.OnDataReceived -= OnDataReceived;
 			this.udpReceiver.StopReceiving();
 			this.udpReceiver.Disconnect();

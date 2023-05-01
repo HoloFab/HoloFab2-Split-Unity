@@ -1,7 +1,9 @@
 //#define DEBUG
+//#define DEBUG2
 #define DEBUGWARNING
 #undef DEBUG
-// #undef DEBUGWARNING
+#undef DEBUG2
+//#undef DEBUGWARNING
 
 using System;
 using System.Collections.Generic;
@@ -45,8 +47,9 @@ namespace HoloFab {
 			return false;
 		}
 		protected override void SpecificTerminate() {
-			this.udpSender.StopSending();
-			this.udpSender.Disconnect();
+			if (this.udpSender == null) return;
+			this.udpSender?.StopSending();
+			this.udpSender?.Disconnect();
 		}
 		public override void OnUpdateIP(){
 			// if ((this.udpSender != null) && (this.udpSender.IP != this.remoteIP))
@@ -60,6 +63,7 @@ namespace HoloFab {
 		/////////////////////////////////////////////////////////////////////////////
 		// A function responsible for decoding and reacting to received UDP data.
 		public void Acknowledge(){
+			if (this.udpSender == null) PrepareSender();
 			byte[] data = EncodeUtilities.EncodeData("HOLOACKNOWLEDGE", NetworkManager.instance.holoState, out _);
 			this.udpSender.QueueUpData(data);
 		}

@@ -1,9 +1,9 @@
-#define DEBUG
-// #define DEBUG2
+//#define DEBUG
+//#define DEBUG2
 #define DEBUGWARNING
-// #undef DEBUG
+#undef DEBUG
 #undef DEBUG2
-// #undef DEBUGWARNING
+//#undef DEBUGWARNING
 
 using System;
 using System.Collections;
@@ -44,13 +44,23 @@ namespace HoloFab {
 				this._connected = value;
 			}
 		}
-		private bool requestAgentUpdate = false;
 		private bool requestIPUpdate = false;
 		private bool requestNetworkReset = false;
 		private Queue<HoloComponent> newComponents = new Queue<HoloComponent>();
         
 		//[SerializeField]
 		private Dictionary<int, NetworkAgentComponent> registeredAgents = new Dictionary<int, NetworkAgentComponent>();
+		public NetworkAgentComponent this[SourceType sourceType, SourceCommunicationType sourceCommunicationType] {
+			get {
+				HoloComponent component = this._holoState.holoComponents.FirstOrDefault(item =>
+					item.sourceType == sourceType
+					&& item.communicationType == sourceCommunicationType
+				);
+				if (component != null)
+					return this.registeredAgents[component.id];
+				return null;
+            }
+		}
         
 		private UDPClientAcknowledgerComponent acknowledger;
         
@@ -66,22 +76,32 @@ namespace HoloFab {
 				#if DEBUG
 				DebugUtilities.UniversalDebug(this.sourceName, "Server IP mismatch");
 				#endif
-				this._holoState = receivedState;
+				this._holoState = new HoloSystemState();
+				this._holoState.serverIP = receivedState.serverIP;
 				this.requestNetworkReset = true;
 				this.requestIPUpdate = true;
 			}
-			foreach(HoloComponent component in receivedState.holoComponents)
-				if (!this._holoState.ContainsID(component.id) 
-					&& !this.newComponents.Any(item => item.id == component.id)
-					&& !this.registeredAgents.ContainsKey(component.id)) {
+			foreach (HoloComponent component in receivedState.holoComponents) { 
+				bool componentAlreadyPresent = this._holoState.ContainsID(component.id),
+					componentAlreadyRequested = this.newComponents.Any(item => item.id == component.id),
+					componentAlreadyInAgents = this.registeredAgents.ContainsKey(component.id);
+				
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "New Component: " + componentAlreadyPresent 
+					+ ", " + componentAlreadyRequested + ", " + componentAlreadyInAgents);
+				#endif
+                if (!componentAlreadyPresent
+                    && !componentAlreadyRequested
+                    //&& !componentAlreadyInAgents
+					) {
 					#if DEBUG
 					DebugUtilities.UniversalDebug(this.sourceName, "New Agent Requested " + component.id);
 					#endif
-					this.requestAgentUpdate = true;
 					lock (this.newComponents) {
 						this.newComponents.Enqueue(component);
 					}
 				}
+			}
 		}
 		public void RequestNetworkReset(){
             this._holoState.Clear();
@@ -108,12 +128,11 @@ namespace HoloFab {
 				ResetNetwork();
 			if (this.requestIPUpdate)
 				UpdateIP();
-            if (NetworkManager.instance.connected && this.requestAgentUpdate)
+            if (NetworkManager.instance.connected && this.newComponents.Count > 0)
                 UpdateAgents();
         }
         
 		private void UpdateAgents(){
-			this.requestAgentUpdate = false;
 			HoloComponent component = null;
 			lock (this.newComponents) {
 				if (this.newComponents.Count > 0) {
@@ -128,11 +147,13 @@ namespace HoloFab {
 					case SourceCommunicationType.Sender:
 					{
 						UDPReceiveComponent networkAgentComponent = gameObject.AddComponent<UDPReceiveComponent>();
+						networkAgentComponent.localPortOverride = component.port;
 					}
 					break;
 					case SourceCommunicationType.Receiver:
 					{
 						UDPSendComponent networkAgentComponent = gameObject.AddComponent<UDPSendComponent>();
+						networkAgentComponent.remotePortOverride = component.port;
 					}
 					break;
 					}
@@ -147,8 +168,9 @@ namespace HoloFab {
 						break;
 					}
 					break;
-			}
-			this.acknowledger.Acknowledge();
+            }
+			this.acknowledger.enabled = true;
+            this.acknowledger.Acknowledge();
             
 			// // TODO: Add ip integrity check
 			//
