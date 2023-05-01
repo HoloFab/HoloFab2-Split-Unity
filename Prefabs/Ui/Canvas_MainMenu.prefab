@@ -289,7 +289,9 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
@@ -1362,7 +1364,9 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
@@ -1683,7 +1687,6 @@ GameObject:
   - component: {fileID: 8256977020131229431}
   - component: {fileID: 8256977020131229430}
   - component: {fileID: 2025574200208551316}
-  - component: {fileID: 6385936301608006466}
   m_Layer: 5
   m_Name: Canvas_MainMenu
   m_TagString: Untagged
@@ -1738,7 +1741,9 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
@@ -1758,25 +1763,6 @@ MonoBehaviour:
   buttonDestroyCplane: {fileID: 8256977019250214312}
   buttonToggleGrid: {fileID: 8256977020159940330}
   buttonObjects: {fileID: 8256977019807250565}
---- !u!114 &6385936301608006466
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8256977020131229426}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1621df485bef4834fa8b258cb5b7dcea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  goDragArea: {fileID: 3383388271071735600}
-  swipePercentageThreshod: 0.1
-  easingDuration: 0.5
-  flagStartState: 0
-  flagSwipeRight: 1
-  closedStateRemainder: 0.1
-  startDraggingThreshold: 20
 --- !u!1 &8256977020159940324
 GameObject:
   m_ObjectHideFlags: 0
